@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+coverage/
+
+.env
+.env.local
+.env.*.local
+
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+# 앱인토스 번들
+*.ait
+
+# 대용량 원본 에셋 (정규화 결과만 커밋)
+assets_raw/

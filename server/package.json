@@ -1,0 +1,24 @@
+{
+  "name": "choseong-battle-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "초성배틀 게임 서버 (Express + Socket.IO)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed-words.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "ioredis": "^5.8.1",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1"
+  }
+}
