@@ -1,0 +1,73 @@
+/**
+ * 환경 설정. 게임 규칙 상수는 여기 한 곳에만 둔다 —
+ * 라운드 루프·매칭·판정이 같은 숫자를 봐야 하기 때문이다.
+ */
+
+import 'dotenv/config';
+
+const num = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+export const config = {
+  port: num(process.env.PORT, 3000),
+  nodeEnv: process.env.NODE_ENV ?? 'development',
+
+  postgres: {
+    host: process.env.PGHOST ?? '127.0.0.1',
+    port: num(process.env.PGPORT, 5432),
+    database: process.env.PGDATABASE ?? 'choseong_battle',
+    user: process.env.PGUSER ?? 'postgres',
+    password: process.env.PGPASSWORD ?? 'ssafy',
+  },
+
+  redis: {
+    host: process.env.REDIS_HOST ?? '127.0.0.1',
+    port: num(process.env.REDIS_PORT, 6379),
+  },
+
+  /** 앱인토스 SDK 3.x CORS 허용 목록 — 실서비스 · QR 테스트 도메인 */
+  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+};
+
+/** 게임 규칙 상수 */
+export const RULES = Object.freeze({
+  /** 멀티플레이 라운드 제한시간 (FR-G2) */
+  ROUND_TIME_MS: 20_000,
+
+  /** 게임 시작 카운트다운 */
+  COUNTDOWN_SEC: 3,
+
+  /** 라운드 승자 확정 후 다음 라운드까지의 연출 시간 */
+  ROUND_INTERVAL_MS: 3_000,
+
+  /** 유찰·전원 패스로 문제를 교체할 때의 연출 시간 */
+  REPLACE_INTERVAL_MS: 1_500,
+
+  /** 방 정원 */
+  MIN_PLAYERS: 2,
+  MAX_PLAYERS: 4,
+
+  /** 라운드 수 (친구 방은 5~20에서 설정, 빠른 대전은 기본값 고정) */
+  DEFAULT_ROUNDS: 10,
+  MIN_ROUNDS: 5,
+  MAX_ROUNDS: 20,
+
+  /** 빠른 매칭: 정원이 차면 즉시, 아니면 이 시간 뒤 2인 이상으로 시작 (FR-M3) */
+  MATCH_WAIT_MS: 15_000,
+  /** 이 시간까지 못 채우면 혼자 연습을 제안한다 (FR-M4) */
+  MATCH_TIMEOUT_MS: 60_000,
+
+  /** 이탈 후 이 시간 안에 돌아오면 진행 중 게임에 복귀 (FR-R6) */
+  REJOIN_GRACE_MS: 30_000,
+
+  /** 문제 공개 후 이 시간보다 빠른 정답은 어뷰징으로 로깅한다 (NFR-5) */
+  SUSPICIOUS_ANSWER_MS: 500,
+
+  /** 한 게임 안에서 재출제를 막을 최근 단어 수 */
+  RECENT_WORDS_LIMIT: 200,
+});
