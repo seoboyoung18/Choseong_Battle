@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { CATEGORY_LABEL, CATEGORY_ORDER, MATCH_SIZES } from '../constants.js';
 
-export function Lobby({ user, onSignIn, actions, matching, connected }) {
+export function Lobby({ user, onSignIn, actions, matching, connected, connecting }) {
   const [nickname, setNickname] = useState(user?.nickname ?? '');
   const [category, setCategory] = useState('ALL');
   const [size, setSize] = useState(4);
@@ -27,10 +27,10 @@ export function Lobby({ user, onSignIn, actions, matching, connected }) {
         <button
           type="button"
           className="btn"
-          disabled={nickname.trim().length < 1}
+          disabled={nickname.trim().length < 1 || connecting}
           onClick={() => onSignIn(nickname.trim())}
         >
-          시작하기
+          {connecting ? '연결 중…' : '시작하기'}
         </button>
         <p className="muted">
           지금은 개발용 로그인이에요. 출시 때는 토스 계정으로 연결됩니다.

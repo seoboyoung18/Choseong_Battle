@@ -18,20 +18,28 @@ export class Dictionary {
   #curatedByLength = new Map();
 
   /**
-   * @param {Array<{ text: string, is_curated: boolean }>} rows words 테이블 행
+   * @type {Map<string, number>} 단어 → words.id
+   * 라운드를 기록할 때마다 word_id를 조회하지 않기 위해 들고 있는다.
+   */
+  #ids = new Map();
+
+  /**
+   * @param {Array<{ id?: number, text: string, is_curated: boolean }>} rows words 테이블 행
    */
   constructor(rows = []) {
-    for (const row of rows) this.add(row.text, row.is_curated);
+    for (const row of rows) this.add(row.text, row.is_curated, row.id);
   }
 
   /**
    * 단어를 사전에 넣는다.
    * @param {string} text
    * @param {boolean} [isCurated] true면 출제 풀에도 들어간다
+   * @param {number} [id] words.id — 있으면 기록용으로 저장한다
    */
-  add(text, isCurated = false) {
+  add(text, isCurated = false, id = undefined) {
     if (this.#words.has(text)) return;
     this.#words.add(text);
+    if (id !== undefined) this.#ids.set(text, id);
     if (!isCurated) return;
 
     const bucket = this.#curatedByLength.get(text.length);
@@ -46,6 +54,15 @@ export class Dictionary {
    */
   has(word) {
     return this.#words.has(word);
+  }
+
+  /**
+   * words.id 조회. 라운드 기록에 쓴다.
+   * @param {string} text
+   * @returns {number | undefined}
+   */
+  idOf(text) {
+    return this.#ids.get(text);
   }
 
   /** 판정용 사전 크기 */
@@ -111,7 +128,7 @@ export class Dictionary {
  */
 export async function loadDictionary(db) {
   const { rows } = await db.query(
-    `SELECT text, is_curated FROM words WHERE status = 'ACTIVE'`,
+    `SELECT id, text, is_curated FROM words WHERE status = 'ACTIVE'`,
   );
   const dictionary = new Dictionary(rows);
   console.log(

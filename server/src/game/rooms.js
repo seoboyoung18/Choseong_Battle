@@ -275,13 +275,23 @@ export class RoomManager {
 
   /**
    * 게임을 시작한다.
-   * @returns {Game | null}
+   *
+   * games 행을 먼저 만든다 — 첫 라운드가 기록될 때 이미 있어야 FK가 걸린다.
+   *
+   * @returns {Promise<Game | null>}
    */
-  startGame(room) {
+  async startGame(room) {
     if (room.status !== 'WAITING') return null;
     room.status = 'PLAYING';
 
     const gameId = `${room.id}-g${Date.now()}`;
+
+    await this.store?.createGame?.({
+      gameId,
+      category: room.category,
+      totalRounds: room.totalRounds,
+      players: [...room.members.values()],
+    });
     const game = new Game({
       gameId,
       players: [...room.members.values()],

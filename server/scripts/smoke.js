@@ -26,11 +26,21 @@ const check = (label, ok) => {
 /** 힌트에 맞는 단어를 사전에서 찾는다 — 플레이어가 머리로 하는 일 */
 const solve = (hint) => ALL_WORDS.find((w) => matchHint(w, hint).ok) ?? null;
 
-const connect = (userId, nickname) =>
+/**
+ * 접속한다. 게임 안에서 쓰는 userId는 서버가 정하므로(users 테이블의 id),
+ * session.ready로 신원을 받을 때까지 기다린 뒤 소켓에 달아둔다.
+ */
+const connect = (accountId, nickname) =>
   new Promise((resolve, reject) => {
-    const socket = io(URL, { auth: { userId, nickname }, transports: ['websocket'] });
-    socket.once('connect', () => resolve(socket));
+    const socket = io(URL, {
+      auth: { userId: accountId, nickname },
+      transports: ['websocket'],
+    });
     socket.once('connect_error', reject);
+    socket.once('session.ready', (me) => {
+      socket.me = me;
+      resolve(socket);
+    });
   });
 
 const waitFor = (socket, event, timeoutMs = 8000) =>
@@ -44,8 +54,8 @@ const waitFor = (socket, event, timeoutMs = 8000) =>
 
 async function main() {
   console.log(`[smoke] ${URL} 접속`);
-  const host = await connect(1001, '호스트감자');
-  const guest = await connect(1002, '게스트과자');
+  const host = await connect('smoke-host', '호스트감자');
+  const guest = await connect('smoke-guest', '게스트과자');
   check('소켓 2개 접속', host.connected && guest.connected);
 
   // ── 방 만들기 · 입장 ───────────────────────────────────────────────────────
@@ -86,8 +96,8 @@ async function main() {
   const won = waitFor(host, 'round.won');
   guest.emit('round.submit', { word: answer });
   const win = await won;
-  check('선착 승리 브로드캐스트', win.winner.userId === 1002 && win.word === answer);
-  check('점수 반영', win.scores['1002'] === 1);
+  check('선착 승리 브로드캐스트', win.winner.userId === guest.me.userId && win.word === answer);
+  check('점수 반영', win.scores[String(guest.me.userId)] === 1);
 
   // ── 2라운드: 전원 패스 → 라운드 유지, 문제 교체 ────────────────────────────
   const round2 = await waitFor(guest, 'round.start');
@@ -126,7 +136,7 @@ async function main() {
   check('게임 종료', Array.isArray(result.ranks) && result.ranks.length === 2);
   check(
     `게스트가 전 라운드 승리 (${result.ranks[0].roundWins}/${totalRounds}승)`,
-    result.ranks[0].userId === 1002 && result.ranks[0].roundWins === totalRounds,
+    result.ranks[0].userId === guest.me.userId && result.ranks[0].roundWins === totalRounds,
   );
   check('패자는 평균 속도가 없음', result.ranks[1].avgAnswerMs === null);
   console.log(`  최종: ${result.ranks.map((r) => `${r.rank}위 ${r.nickname} ${r.roundWins}승`).join(' · ')}`);

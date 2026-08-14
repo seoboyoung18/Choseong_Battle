@@ -144,11 +144,15 @@ CREATE TABLE rounds (
   ended_at       timestamptz,
   UNIQUE (game_id, round_no, attempt_no),
 
-  -- 승리로 끝난 라운드는 승자 정보가 반드시 있고, 유찰은 반드시 없다.
+  -- 승리로 끝난 라운드에는 정답 단어가 있고, 유찰에는 승자 정보가 없다.
+  --
+  -- winner_id는 조건에서 뺐다. 유저가 탈퇴하면 FK가 이 칸을 NULL로 만드는데,
+  -- 승자를 요구하면 그 삭제가 통째로 실패한다. 탈퇴해도 남아야 하는 건
+  -- "이 라운드는 누군가 맞혀서 끝났고 정답은 이것"이라는 사실이다.
   CONSTRAINT rounds_winner_consistent CHECK (
-    (end_reason = 'WON'  AND winner_id IS NOT NULL AND won_word IS NOT NULL)
+    end_reason IS NULL
+    OR (end_reason =  'WON' AND won_word IS NOT NULL)
     OR (end_reason <> 'WON' AND winner_id IS NULL AND won_word IS NULL)
-    OR end_reason IS NULL
   )
 );
 

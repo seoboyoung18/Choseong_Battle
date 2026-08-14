@@ -1,0 +1,262 @@
+/**
+ * 영속화 테스트 — 실제 PostgreSQL에 붙어 돈다.
+ * 테스트가 남긴 행은 끝에서 지운다.
+ */
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { PostgresStore } from '../src/db/store.js';
+import { pool, query } from '../src/db/pool.js';
+
+let available = false;
+let store;
+
+/** 시드된 실제 단어를 쓴다 — words.id가 있어야 라운드가 기록된다 */
+const WORD = '감자';
+let wordId;
+
+/** 테스트가 만든 유저 — 끝나고 지운다 (게임·라운드·제출은 CASCADE로 함께 사라진다) */
+const createdUsers = [];
+
+test.before(async () => {
+  try {
+    const { rows } = await query(`SELECT id FROM words WHERE text = $1`, [WORD]);
+    if (rows.length === 0) {
+      console.warn('[test] 시드 단어가 없어 store 테스트를 건너뜁니다 — npm run db:seed');
+      return;
+    }
+    wordId = Number(rows[0].id);
+    available = true;
+    store = new PostgresStore({
+      db: { query },
+      dictionary: { idOf: (text) => (text === WORD ? wordId : undefined) },
+    });
+  } catch (err) {
+    console.warn(`[test] PostgreSQL에 붙지 못해 store 테스트를 건너뜁니다 — ${err.message}`);
+  }
+});
+
+test.after(async () => {
+  if (createdUsers.length) {
+    await query(`DELETE FROM users WHERE id = ANY($1::bigint[])`, [createdUsers]);
+  }
+  await pool.end();
+});
+
+let seq = 0;
+async function makeUser(nickname) {
+  const user = await store.upsertUser({
+    tossUserId: `test-${process.pid}-${++seq}`,
+    nickname,
+  });
+  createdUsers.push(user.id);
+  return user;
+}
+
+test('유저를 만들고, 다시 부르면 같은 유저를 준다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const tossId = `test-${process.pid}-upsert`;
+  const first = await store.upsertUser({ tossUserId: tossId, nickname: '새벽감자' });
+  createdUsers.push(first.id);
+
+  assert.ok(first.id > 0);
+  assert.equal(first.nickname, '새벽감자');
+
+  // 닉네임을 바꿔 다시 들어와도 계정은 하나여야 한다
+  const second = await store.upsertUser({ tossUserId: tossId, nickname: '낮의감자' });
+  assert.equal(second.id, first.id, '같은 계정인데 유저가 새로 생겼다');
+  assert.equal(second.nickname, '낮의감자', '닉네임 변경이 반영되지 않았다');
+});
+
+test('판을 열면 참가자 행이 함께 생긴다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const a = await makeUser('가');
+  const b = await makeUser('나');
+  const gameId = `g-${process.pid}-${++seq}`;
+
+  const dbGameId = await store.createGame({
+    gameId,
+    category: 'CHO',
+    totalRounds: 10,
+    players: [{ userId: a.id }, { userId: b.id }],
+  });
+
+  assert.ok(dbGameId > 0);
+  const { rows } = await query(`SELECT user_id, round_wins FROM game_players WHERE game_id = $1`, [dbGameId]);
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every((r) => r.round_wins === 0));
+});
+
+test('라운드 승리를 기록한다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const a = await makeUser('승자');
+  const gameId = `g-${process.pid}-${++seq}`;
+  const dbGameId = await store.createGame({
+    gameId, category: 'CHO', totalRounds: 10, players: [{ userId: a.id }],
+  });
+
+  const hint = [{ type: 'CHO', value: 'ㄱ' }, { type: 'CHO', value: 'ㅈ' }];
+  await store.startRound({ gameId, roundNo: 1, attemptNo: 1, word: WORD, hintType: 'CHO', hint });
+  await store.endRound({
+    gameId, roundNo: 1, attemptNo: 1,
+    endReason: 'WON', winnerId: a.id, wonWord: WORD, wonElapsedMs: 3200, passCount: 0,
+  });
+
+  const { rows } = await query(
+    `SELECT round_no, attempt_no, end_reason, winner_id, won_word, won_elapsed_ms, hint
+       FROM rounds WHERE game_id = $1`,
+    [dbGameId],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].end_reason, 'WON');
+  assert.equal(Number(rows[0].winner_id), a.id);
+  assert.equal(rows[0].won_word, WORD);
+  assert.equal(rows[0].won_elapsed_ms, 3200);
+  assert.deepEqual(rows[0].hint, hint, '힌트가 jsonb로 그대로 보존돼야 한다');
+});
+
+test('유찰은 같은 라운드 번호에 attempt만 올려 쌓인다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const a = await makeUser('유찰');
+  const gameId = `g-${process.pid}-${++seq}`;
+  const dbGameId = await store.createGame({
+    gameId, category: 'CHO', totalRounds: 10, players: [{ userId: a.id }],
+  });
+
+  const hint = [{ type: 'CHO', value: 'ㄱ' }];
+
+  // 1차: 시간 초과
+  await store.startRound({ gameId, roundNo: 3, attemptNo: 1, word: WORD, hintType: 'CHO', hint });
+  await store.endRound({ gameId, roundNo: 3, attemptNo: 1, endReason: 'TIMEOUT', passCount: 0 });
+
+  // 2차: 전원 패스
+  await store.startRound({ gameId, roundNo: 3, attemptNo: 2, word: WORD, hintType: 'CHO', hint });
+  await store.endRound({ gameId, roundNo: 3, attemptNo: 2, endReason: 'ALL_PASSED', passCount: 2 });
+
+  const { rows } = await query(
+    `SELECT attempt_no, end_reason, winner_id, pass_count FROM rounds
+      WHERE game_id = $1 AND round_no = 3 ORDER BY attempt_no`,
+    [dbGameId],
+  );
+  assert.equal(rows.length, 2, '유찰마다 행이 하나씩 쌓여야 한다');
+  assert.deepEqual(rows.map((r) => r.end_reason), ['TIMEOUT', 'ALL_PASSED']);
+  assert.ok(rows.every((r) => r.winner_id === null), '유찰에는 승자가 없어야 한다');
+  assert.equal(rows[1].pass_count, 2);
+});
+
+test('거절된 제출도 전부 남는다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const a = await makeUser('제출');
+  const gameId = `g-${process.pid}-${++seq}`;
+  const dbGameId = await store.createGame({
+    gameId, category: 'CHO', totalRounds: 10, players: [{ userId: a.id }],
+  });
+  await store.startRound({
+    gameId, roundNo: 1, attemptNo: 1, word: WORD, hintType: 'CHO',
+    hint: [{ type: 'CHO', value: 'ㄱ' }],
+  });
+
+  const entries = [
+    ['하늘', 'REJECTED_PATTERN_MISMATCH', 900],
+    ['가지', 'REJECTED_NOT_IN_DICT', 1500],
+    [WORD, 'WON', 2100],
+    [WORD, 'LATE', 2200],
+  ];
+  for (const [word, result, elapsedMs] of entries) {
+    await store.recordSubmission({
+      gameId, roundNo: 1, attemptNo: 1, userId: a.id, word, result, elapsedMs,
+    });
+  }
+
+  const { rows } = await query(
+    `SELECT s.word, s.result FROM submissions s
+       JOIN rounds r ON r.id = s.round_id
+      WHERE r.game_id = $1 ORDER BY s.id`,
+    [dbGameId],
+  );
+  assert.equal(rows.length, 4, '거절 로그가 빠졌다 — 사전 보강의 근거가 사라진다');
+  assert.deepEqual(rows.map((r) => r.result), entries.map((e) => e[1]));
+});
+
+test('게임을 닫으면 인별 결과가 확정된다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const a = await makeUser('일등');
+  const b = await makeUser('꼴찌');
+  const gameId = `g-${process.pid}-${++seq}`;
+  const dbGameId = await store.createGame({
+    gameId, category: 'ALL', totalRounds: 10, players: [{ userId: a.id }, { userId: b.id }],
+  });
+
+  await store.endGame({
+    gameId,
+    ranks: [
+      { userId: a.id, roundWins: 6, avgAnswerMs: 4200, rank: 1, leftEarly: false },
+      { userId: b.id, roundWins: 4, avgAnswerMs: 5800, rank: 2, leftEarly: true },
+    ],
+  });
+
+  const { rows } = await query(
+    `SELECT user_id, round_wins, avg_answer_ms, final_rank, left_early
+       FROM game_players WHERE game_id = $1 ORDER BY final_rank`,
+    [dbGameId],
+  );
+  assert.equal(rows[0].round_wins, 6);
+  assert.equal(rows[0].avg_answer_ms, 4200);
+  assert.equal(rows[0].left_early, false);
+  assert.equal(rows[1].final_rank, 2);
+  assert.equal(rows[1].left_early, true);
+
+  const { rows: gameRows } = await query(`SELECT ended_at FROM games WHERE id = $1`, [dbGameId]);
+  assert.ok(gameRows[0].ended_at, 'ended_at이 채워지지 않았다');
+});
+
+test('전적은 끝난 판만 센다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const a = await makeUser('전적');
+
+  const finished = `g-${process.pid}-${++seq}`;
+  await store.createGame({ gameId: finished, category: 'ALL', totalRounds: 10, players: [{ userId: a.id }] });
+  await store.endGame({
+    gameId: finished,
+    ranks: [{ userId: a.id, roundWins: 7, avgAnswerMs: 3000, rank: 1, leftEarly: false }],
+  });
+
+  // 아직 진행 중인 판은 집계에 들어가면 안 된다
+  const running = `g-${process.pid}-${++seq}`;
+  await store.createGame({ gameId: running, category: 'ALL', totalRounds: 10, players: [{ userId: a.id }] });
+
+  const stats = await store.getUserStats(a.id);
+  assert.equal(stats.games, 1, '진행 중인 판이 전적에 섞였다');
+  assert.equal(stats.wins, 1);
+  assert.equal(stats.roundWins, 7);
+  assert.equal(stats.winRate, 1);
+});
+
+test('기록에 실패해도 예외를 던지지 않는다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  // 없는 게임에 라운드를 기록하려 해도 게임 루프가 깨지면 안 된다
+  const result = await store.startRound({
+    gameId: 'nonexistent', roundNo: 1, attemptNo: 1, word: WORD, hintType: 'CHO', hint: [],
+  });
+  assert.equal(result, null);
+
+  // 사전에 없는 단어도 마찬가지
+  const gameId = `g-${process.pid}-${++seq}`;
+  const a = await makeUser('실패');
+  await store.createGame({ gameId, category: 'CHO', totalRounds: 10, players: [{ userId: a.id }] });
+  assert.equal(
+    await store.startRound({
+      gameId, roundNo: 1, attemptNo: 1, word: '없는단어', hintType: 'CHO', hint: [],
+    }),
+    null,
+  );
+});

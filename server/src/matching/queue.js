@@ -180,8 +180,10 @@ export class Matchmaker {
     // 참가자 목록을 몰라 스코어보드가 빈 채로 게임이 시작된다.
     this.io.to(room.id).emit('room.state', room.toState());
 
-    const game = this.rooms.startGame(room);
-    game?.start().catch((err) => console.error('[match] 게임 시작 실패', err));
+    this.rooms
+      .startGame(room)
+      .then((game) => game?.start())
+      .catch((err) => console.error('[match] 게임 시작 실패', err));
   }
 }
 

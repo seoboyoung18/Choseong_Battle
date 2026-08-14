@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { REJECT_MESSAGE, connect } from './socket/client.js';
 
 const initialState = {
+  me: null, // 서버가 확정한 내 신원 { userId, nickname, avatarId, stats }
   phase: 'LOBBY', // LOBBY | ROOM | PLAYING | RESULT
   room: null,
   round: null, // { roundNo, totalRounds, hint, deadlineTs, suddenDeath }
@@ -38,6 +39,9 @@ export function useGame() {
 
     socket.on('connect', () => patch({ connected: true }));
     socket.on('disconnect', () => patch({ connected: false }));
+
+    // 게임 안에서 쓰는 userId는 서버가 정한다 — handshake에 보낸 임시 id가 아니다
+    socket.on('session.ready', (me) => patch({ me }));
 
     socket.on('room.state', (room) => {
       setState((prev) => ({
@@ -113,7 +117,7 @@ export function useGame() {
     joinRoom: (code) => emit('room.join', { code }),
     leaveRoom: () => {
       emit('room.leave');
-      setState((prev) => ({ ...initialState, connected: prev.connected }));
+      setState((prev) => ({ ...initialState, connected: prev.connected, me: prev.me }));
     },
     setReady: (isReady) => emit('room.ready', { isReady }),
     startGame: () => emit('game.start', { solo: false }),

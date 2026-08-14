@@ -12,6 +12,7 @@ import { Server } from 'socket.io';
 
 import { RULES, config } from './config.js';
 import { pool, query } from './db/pool.js';
+import { PostgresStore } from './db/store.js';
 import { RoomManager } from './game/rooms.js';
 import { Matchmaker, isValidCategory, isValidSize } from './matching/queue.js';
 import { closeRedis, getRedis } from './redis/client.js';
@@ -34,7 +35,9 @@ const dictionary = await loadDictionary({ query });
 /** 실시간 이벤트는 전부 /game 네임스페이스에서 오간다 (API 명세 3장) */
 const gameNsp = io.of('/game');
 
-const rooms = new RoomManager({ redis, dictionary, io: gameNsp });
+const store = new PostgresStore({ db: { query }, dictionary });
+
+const rooms = new RoomManager({ redis, dictionary, io: gameNsp, store });
 const matchmaker = new Matchmaker({ redis, rooms, io: gameNsp });
 matchmaker.start();
 
@@ -72,11 +75,24 @@ app.get('/api/v1/rooms', (_req, res) => {
  * TODO: 토스 로그인 → 자체 JWT 검증으로 교체한다. 지금은 개발용으로
  * handshake.auth의 값을 그대로 신뢰하므로 절대 이 상태로 배포하면 안 된다.
  */
-gameNsp.use((socket, next) => {
+gameNsp.use(async (socket, next) => {
   const { userId, nickname, avatarId } = socket.handshake.auth ?? {};
   if (!userId || !nickname) return next(new Error('UNAUTHORIZED'));
 
-  socket.data.user = { userId, nickname, avatarId: Number(avatarId) || 1 };
+  // 클라이언트가 보낸 id는 계정 식별자일 뿐이고, 게임 안에서 쓰는 userId는
+  // users 테이블의 숫자 id다. 전적·제출 로그가 FK로 묶여야 하기 때문이다.
+  const account = await store.upsertUser({
+    tossUserId: String(userId),
+    nickname: String(nickname).slice(0, 12),
+    avatarId: Number(avatarId) || 1,
+  });
+  if (!account) return next(new Error('SIGNIN_FAILED'));
+
+  socket.data.user = {
+    userId: account.id,
+    nickname: account.nickname,
+    avatarId: account.avatarId,
+  };
   next();
 });
 
@@ -85,6 +101,12 @@ gameNsp.on('connection', (socket) => {
   const userId = String(user.userId);
 
   touchPresence(redis, userId, '').catch(() => {});
+
+  // 서버가 확정한 내 신원과 전적을 알려준다. 클라이언트는 handshake에 보낸
+  // 임시 id가 아니라 이 userId로 "나"를 식별해야 한다.
+  store.getUserStats(user.userId).then((stats) => {
+    socket.emit('session.ready', { ...user, stats });
+  });
 
   /** 현재 방 상태를 방 전체에 뿌리고 Redis에도 남긴다 */
   const broadcastRoom = (room) => {
@@ -157,7 +179,7 @@ gameNsp.on('connection', (socket) => {
       );
     }
 
-    const instance = rooms.startGame(room);
+    const instance = await rooms.startGame(room);
     await instance?.start();
   });
 
