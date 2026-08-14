@@ -1,0 +1,80 @@
+.kb {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 4px;
+}
+
+.kb__row {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.kb__key {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 2px 0 var(--sand-border);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.04s, box-shadow 0.04s;
+}
+
+.kb__key:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--sand-border);
+}
+
+.kb__key:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.kb__key--fn {
+  /* 3글자 라벨('쌍자음')이 두 줄로 접히지 않을 만큼은 넓어야 한다 */
+  flex: 1.8;
+  background: var(--sand);
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--ink-sub);
+}
+
+.kb__key--fn.is-on {
+  background: var(--mustard);
+  box-shadow: 0 2px 0 var(--mustard-dark);
+  color: #fff;
+}
+
+.kb__submit {
+  height: 52px;
+  margin-top: 2px;
+  border: none;
+  border-radius: 10px;
+  background: var(--terracotta);
+  box-shadow: 0 4px 0 var(--terracotta-dark);
+  color: #fff;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.04s, box-shadow 0.04s;
+}
+
+.kb__submit:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--terracotta-dark);
+}
+
+.kb__submit:disabled {
+  background: var(--sand);
+  color: var(--ink-dim);
+  box-shadow: 0 4px 0 var(--sand-border);
+  cursor: default;
+}

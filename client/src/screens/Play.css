@@ -1,0 +1,101 @@
+.play {
+  gap: 10px;
+}
+
+.play__scores {
+  display: flex;
+  gap: 6px;
+}
+
+.play__score {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--sand);
+  min-width: 0;
+}
+
+.play__score.is-me {
+  border-color: var(--terracotta);
+}
+
+.play__score.is-out {
+  opacity: 0.45;
+}
+
+.play__nick {
+  font-size: 12px;
+  color: var(--ink-sub);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.play__score strong {
+  font-size: 20px;
+  font-family: var(--font-title), var(--font-ui);
+}
+
+.play__timer {
+  font-family: var(--font-title), var(--font-ui);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink-sub);
+}
+
+.play__timer.is-urgent {
+  color: var(--terracotta);
+}
+
+.play__stage {
+  display: flex;
+  justify-content: center;
+  padding: 18px 0;
+}
+
+.play__input {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--sand-border);
+  border-radius: var(--radius);
+  font-family: var(--font-title), var(--font-ui);
+  font-size: 30px;
+  letter-spacing: 2px;
+}
+
+.play__placeholder {
+  color: var(--ink-dim);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.play__notice {
+  min-height: 20px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--terracotta);
+}
+
+.play__reaction {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.play__last {
+  text-align: center;
+  margin: 0;
+}

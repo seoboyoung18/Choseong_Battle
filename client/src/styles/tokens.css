@@ -1,0 +1,182 @@
+/**
+ * 디자인 토큰 — 기획서의 웜 팔레트.
+ *
+ * 색 의미 체계: 자음=테라코타, 모음=머스타드, 자음+모음=세이지,
+ * 한 글자 공개=잉크, 빈칸=모래. 같은 자모 유형은 어느 화면에서든 같은 색이다.
+ */
+
+:root {
+  --bg: #f3e9dc;
+  --card: #fffcf7;
+
+  --ink: #3b2f27;
+  --ink-sub: #6e5b4c;
+  --ink-dim: #93806f;
+
+  --terracotta: #c4622d;
+  --terracotta-dark: #96461c;
+  --sage: #7a9471;
+  --sage-dark: #5a7152;
+  --mustard: #d9a036;
+  --mustard-dark: #ae7a1b;
+  --sand: #e6d6c0;
+  --sand-border: #c6b096;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+
+  /* 3D 입체 버튼 — 캐주얼 게임 특유의 촉감 */
+  --lift: 4px;
+
+  --font-ui: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-title: 'Jua', var(--font-ui);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  /* 게임 화면에서 길게 눌러 선택되는 것을 막는다 */
+  user-select: none;
+}
+
+#root {
+  height: 100%;
+}
+
+/* ── 공통 컴포넌트 ─────────────────────────────────────────────────────────── */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  gap: 16px;
+}
+
+.title {
+  font-family: var(--font-title);
+  font-size: 32px;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--sand);
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--terracotta);
+  box-shadow: 0 var(--lift) 0 var(--terracotta-dark);
+  cursor: pointer;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--terracotta-dark);
+}
+
+.btn:disabled {
+  background: var(--sand);
+  color: var(--ink-dim);
+  box-shadow: 0 var(--lift) 0 var(--sand-border);
+  cursor: default;
+}
+
+.btn--sage {
+  background: var(--sage);
+  box-shadow: 0 var(--lift) 0 var(--sage-dark);
+}
+.btn--sage:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--sage-dark);
+}
+
+.btn--mustard {
+  background: var(--mustard);
+  box-shadow: 0 var(--lift) 0 var(--mustard-dark);
+}
+.btn--mustard:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--mustard-dark);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--ink-sub);
+  box-shadow: none;
+  font-weight: 600;
+}
+.btn--ghost:active:not(:disabled) {
+  transform: none;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--sand-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 16px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.input:focus {
+  outline: 2px solid var(--terracotta);
+  outline-offset: -1px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.muted {
+  color: var(--ink-dim);
+  font-size: 14px;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.32s;
+}
