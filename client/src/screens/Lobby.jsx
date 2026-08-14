@@ -4,6 +4,16 @@ import { useState } from 'react';
 
 import { CATEGORY_LABEL, CATEGORY_ORDER, MATCH_SIZES } from '../constants.js';
 
+/** 홈 상단 전적 칸 하나 */
+function Stat({ label, value }) {
+  return (
+    <div style={{ flex: 1, textAlign: 'center' }}>
+      <div style={{ fontFamily: 'var(--font-title), var(--font-ui)', fontSize: 22 }}>{value}</div>
+      <div className="muted" style={{ fontSize: 12 }}>{label}</div>
+    </div>
+  );
+}
+
 export function Lobby({ user, onSignIn, actions, matching, connected, connecting }) {
   const [nickname, setNickname] = useState(user?.nickname ?? '');
   const [category, setCategory] = useState('ALL');
@@ -67,6 +77,28 @@ export function Lobby({ user, onSignIn, actions, matching, connected, connecting
         <div className="spacer" />
         <span className="muted">{connected ? user.nickname : '연결 중…'}</span>
       </div>
+
+      {/* 전적 · 주간 랭크 (FR-A4) */}
+      <section className="card">
+        <div className="row">
+          <Stat label="전" value={user.stats?.games ?? 0} />
+          <Stat label="승" value={user.stats?.wins ?? 0} />
+          <Stat label="승률" value={`${Math.round((user.stats?.winRate ?? 0) * 100)}%`} />
+          <Stat
+            label="주간"
+            value={user.weeklyRank ? `${user.weeklyRank.rank}위` : '—'}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          style={{ width: '100%', marginTop: 6 }}
+          onClick={actions.openRanking}
+        >
+          주간 랭킹 보기
+          {user.weeklyRank ? ` · 내 ${user.weeklyRank.roundWins}승` : ''}
+        </button>
+      </section>
 
       <section className="card">
         <strong>카테고리</strong>

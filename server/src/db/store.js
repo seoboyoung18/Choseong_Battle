@@ -12,6 +12,31 @@
  *   submissions    거절 포함 모든 제출 — 사전 보강·난이도 보정·어뷰징 분석용
  */
 
+import { weekOf } from '../ranking/week.js';
+
+/** 주간 랭킹 집계 규칙 (README 「랭킹」) */
+export const RANKING = Object.freeze({
+  /** 한 유저가 한 주에 반영할 수 있는 최대 판 수 — 갈아넣기 완화 */
+  GAME_CAP: 20,
+  /** 등재에 필요한 최소 판 수 */
+  MIN_GAMES: 3,
+  /** 리스트에 내려보낼 상위 인원 */
+  TOP_N: 100,
+});
+
+/** 랭킹 행을 클라이언트가 쓰는 모양으로 바꾼다 */
+function toRankRow(row) {
+  return {
+    rank: row.rank,
+    userId: Number(row.user_id),
+    nickname: row.nickname,
+    avatarId: row.avatar_id,
+    roundWins: row.round_wins,
+    avgAnswerMs: row.avg_answer_ms,
+    gamesCounted: row.games_counted,
+  };
+}
+
 /** 인메모리 게임 id → DB에서 쓸 식별자들 */
 class GameRefs {
   constructor(dbGameId) {
@@ -77,13 +102,13 @@ export class PostgresStore {
    * @param {Array<{ userId: number }>} params.players
    * @returns {Promise<number | null>} games.id
    */
-  async createGame({ gameId, category, totalRounds, players }) {
+  async createGame({ gameId, category, totalRounds, players, mode = 'QUICK' }) {
     return this.#safe('게임 생성', async () => {
       // room_id는 지금 비워둔다. 방은 Redis에만 사는 휘발성 상태라
       // rooms 테이블에 올리는 건 별도 작업이다.
       const { rows } = await this.db.query(
-        `INSERT INTO games (category, total_rounds) VALUES ($1, $2) RETURNING id`,
-        [category, totalRounds],
+        `INSERT INTO games (category, total_rounds, mode) VALUES ($1, $2, $3) RETURNING id`,
+        [category, totalRounds, mode],
       );
       const dbGameId = Number(rows[0].id);
 
@@ -192,7 +217,110 @@ export class PostgresStore {
 
     // 끝난 판의 라운드 id 맵은 더 들고 있을 이유가 없다 (프로세스가 오래 뜬다)
     this.games.delete(gameId);
+
+    // 랭킹 갱신은 게임 종료를 막지 않는다 — 결과 화면이 이걸 기다릴 이유가 없다
+    this.refreshWeeklyRanking().catch(() => {});
+
     return result;
+  }
+
+  /**
+   * 주간 랭킹을 다시 집계한다.
+   *
+   * 규칙 (README 「랭킹」)
+   *   - 빠른 대전만 센다. 친구 방은 둘이 짜고 승수를 무한정 만들 수 있다
+   *   - 한 유저당 승수가 높은 상위 20판까지만 — 단순 합산은 실력이 아니라
+   *     플레이 시간을 재는 지표가 된다
+   *   - 주 3판 이상 해야 등재된다
+   *   - 동점은 평균 정답 속도가 빠른 쪽이 위
+   *
+   * 지금은 게임이 끝날 때마다 해당 주를 통째로 다시 계산한다. 판 수가 적을
+   * 때는 이게 가장 단순하고 항상 정확하다. 규모가 커지면 주기적 배치로
+   * 옮겨야 한다.
+   *
+   * @param {{ week: string, start: Date, end: Date }} [range]
+   * @returns {Promise<number|null>} 등재된 인원 수
+   */
+  async refreshWeeklyRanking(range = weekOf()) {
+    return this.#safe('주간 랭킹 집계', async () => {
+      const { week, start, end } = range;
+
+      // 통째로 지우고 다시 넣는다. 상한·등재 조건 때문에 순위에서 빠지는
+      // 사람이 생기는데, 갱신만 하면 그 사람이 남아버린다.
+      await this.db.query(`DELETE FROM weekly_rankings WHERE week = $1`, [week]);
+
+      const { rowCount } = await this.db.query(
+        `WITH played AS (
+           SELECT gp.user_id, gp.round_wins, gp.avg_answer_ms,
+                  row_number() OVER (
+                    PARTITION BY gp.user_id
+                    ORDER BY gp.round_wins DESC, gp.avg_answer_ms ASC NULLS LAST
+                  ) AS nth
+             FROM game_players gp
+             JOIN games g ON g.id = gp.game_id
+            WHERE g.mode = 'QUICK'
+              AND g.ended_at IS NOT NULL
+              AND g.ended_at >= $2 AND g.ended_at < $3
+         ),
+         capped AS (
+           SELECT user_id,
+                  sum(round_wins)::int      AS round_wins,
+                  avg(avg_answer_ms)::int   AS avg_answer_ms,
+                  count(*)::int             AS games_counted
+             FROM played
+            WHERE nth <= $4
+            GROUP BY user_id
+           HAVING count(*) >= $5
+         )
+         INSERT INTO weekly_rankings (week, user_id, round_wins, avg_answer_ms, games_counted, rank)
+         SELECT $1, user_id, round_wins, avg_answer_ms, games_counted,
+                rank() OVER (ORDER BY round_wins DESC, avg_answer_ms ASC NULLS LAST)
+           FROM capped`,
+        [week, start, end, RANKING.GAME_CAP, RANKING.MIN_GAMES],
+      );
+
+      return rowCount;
+    });
+  }
+
+  /**
+   * 주간 랭킹 조회 — 상위 100명과 내 순위.
+   *
+   * 내가 상위 100에 없어도 내 줄은 따로 내려보낸다. 화면 하단에 내 순위를
+   * 고정으로 붙이기 위해서다 (FR-K2).
+   *
+   * @param {object} params
+   * @param {string} [params.week] 기본: 이번 주
+   * @param {number} [params.userId]
+   */
+  async getWeeklyRanking({ week = weekOf().week, userId } = {}) {
+    return this.#safe('주간 랭킹 조회', async () => {
+      const { rows: top } = await this.db.query(
+        `SELECT wr.rank, wr.round_wins, wr.avg_answer_ms, wr.games_counted,
+                u.id AS user_id, u.nickname, u.avatar_id
+           FROM weekly_rankings wr
+           JOIN users u ON u.id = wr.user_id
+          WHERE wr.week = $1
+          ORDER BY wr.rank
+          LIMIT $2`,
+        [week, RANKING.TOP_N],
+      );
+
+      let me = null;
+      if (userId) {
+        const { rows } = await this.db.query(
+          `SELECT wr.rank, wr.round_wins, wr.avg_answer_ms, wr.games_counted,
+                  u.id AS user_id, u.nickname, u.avatar_id
+             FROM weekly_rankings wr
+             JOIN users u ON u.id = wr.user_id
+            WHERE wr.week = $1 AND wr.user_id = $2`,
+          [week, userId],
+        );
+        me = rows[0] ? toRankRow(rows[0]) : null;
+      }
+
+      return { week, top: top.map(toRankRow), me, minGames: RANKING.MIN_GAMES };
+    });
   }
 
   /**

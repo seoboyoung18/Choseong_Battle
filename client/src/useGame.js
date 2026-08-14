@@ -23,6 +23,8 @@ const initialState = {
   matching: false,
   suddenDeath: false,
   connected: false,
+  ranking: null, // 주간 랭킹 { week, top, me, minGames }
+  showRanking: false,
 };
 
 export function useGame() {
@@ -42,6 +44,7 @@ export function useGame() {
 
     // 게임 안에서 쓰는 userId는 서버가 정한다 — handshake에 보낸 임시 id가 아니다
     socket.on('session.ready', (me) => patch({ me }));
+    socket.on('ranking.weekly', (ranking) => patch({ ranking }));
 
     socket.on('room.state', (room) => {
       setState((prev) => ({
@@ -96,7 +99,11 @@ export function useGame() {
       patch({ suddenDeath: true, notice: { text: '동점! 서든데스', seq: Date.now() } }),
     );
 
-    socket.on('game.ended', (result) => patch({ phase: 'RESULT', result, round: null }));
+    socket.on('game.ended', (result) => {
+      patch({ phase: 'RESULT', result, round: null });
+      // 방금 판이 전적·랭킹에 반영됐다. 홈으로 돌아갔을 때 옛 숫자가 보이면 안 된다.
+      socket.emit('me.refresh');
+    });
 
     socket.on('submit.rejected', ({ reason }) => {
       const text = REJECT_MESSAGE[reason];
@@ -134,6 +141,11 @@ export function useGame() {
       emit('matching.cancel');
     },
     backToRoom: () => patch({ phase: 'ROOM', result: null, scores: {}, lastWin: null }),
+    openRanking: () => {
+      patch({ showRanking: true });
+      emit('ranking.weekly');
+    },
+    closeRanking: () => patch({ showRanking: false }),
   };
 
   return { state, signIn, actions, socket: socketRef };

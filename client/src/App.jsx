@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { Lobby } from './screens/Lobby.jsx';
 import { Play } from './screens/Play.jsx';
+import { Ranking } from './screens/Ranking.jsx';
 import { Result } from './screens/Result.jsx';
 import { Room } from './screens/Room.jsx';
 import { useGame } from './useGame.js';
@@ -43,6 +44,11 @@ export default function App() {
   }
 
   const user = state.me;
+
+  // 랭킹은 어느 화면에서 열든 그 위에 덮인다
+  if (state.showRanking) {
+    return <Ranking ranking={state.ranking} user={user} onClose={actions.closeRanking} />;
+  }
 
   if (state.phase === 'RESULT' && state.result) {
     return <Result result={state.result} user={user} actions={actions} />;

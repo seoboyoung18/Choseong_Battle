@@ -15,6 +15,7 @@ import { pool, query } from './db/pool.js';
 import { PostgresStore } from './db/store.js';
 import { RoomManager } from './game/rooms.js';
 import { Matchmaker, isValidCategory, isValidSize } from './matching/queue.js';
+import { isValidWeek } from './ranking/week.js';
 import { closeRedis, getRedis } from './redis/client.js';
 import { clearPresence, touchPresence } from './redis/locks.js';
 import { loadDictionary } from './words/dictionary.js';
@@ -104,8 +105,11 @@ gameNsp.on('connection', (socket) => {
 
   // 서버가 확정한 내 신원과 전적을 알려준다. 클라이언트는 handshake에 보낸
   // 임시 id가 아니라 이 userId로 "나"를 식별해야 한다.
-  store.getUserStats(user.userId).then((stats) => {
-    socket.emit('session.ready', { ...user, stats });
+  Promise.all([
+    store.getUserStats(user.userId),
+    store.getWeeklyRanking({ userId: user.userId }),
+  ]).then(([stats, ranking]) => {
+    socket.emit('session.ready', { ...user, stats, weeklyRank: ranking?.me ?? null });
   });
 
   /** 현재 방 상태를 방 전체에 뿌리고 Redis에도 남긴다 */
@@ -179,7 +183,7 @@ gameNsp.on('connection', (socket) => {
       );
     }
 
-    const instance = await rooms.startGame(room);
+    const instance = await rooms.startGame(room, { solo });
     await instance?.start();
   });
 
@@ -202,6 +206,29 @@ gameNsp.on('connection', (socket) => {
     if (!room) return;
     if (!['👍', '😂', '😱', '🔥'].includes(emoji)) return;
     gameNsp.to(room.id).emit('reaction.broadcast', { userId: user.userId, emoji });
+  });
+
+  // ── 랭킹 · 전적 ────────────────────────────────────────────────────────────
+
+  // API 명세는 REST(GET /rankings/weekly)로 잡혀 있지만, 아직 REST를 지킬
+  // 인증 수단이 없다. JWT가 붙으면 REST로 옮긴다.
+  socket.on('ranking.weekly', async ({ week } = {}) => {
+    if (week !== undefined && !isValidWeek(week)) {
+      return fail('INVALID_PARAM', '주차 형식이 올바르지 않아요');
+    }
+    const ranking = await store.getWeeklyRanking({
+      ...(week ? { week } : {}),
+      userId: user.userId,
+    });
+    socket.emit('ranking.weekly', ranking ?? { week: null, top: [], me: null });
+  });
+
+  socket.on('me.refresh', async () => {
+    const [stats, ranking] = await Promise.all([
+      store.getUserStats(user.userId),
+      store.getWeeklyRanking({ userId: user.userId }),
+    ]);
+    socket.emit('session.ready', { ...user, stats, weeklyRank: ranking?.me ?? null });
   });
 
   // ── 연결 유지 · 종료 ───────────────────────────────────────────────────────

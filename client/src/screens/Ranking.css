@@ -1,0 +1,91 @@
+.rank {
+  gap: 12px;
+}
+
+.rank__podium {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.rank__podium-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 6px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--sand);
+  min-width: 0;
+}
+
+/* 1위를 가운데가 아니라 맨 앞에 두되, 조금 더 크게 세운다 */
+.rank__podium-item--1 {
+  border-color: var(--mustard);
+  padding-top: 22px;
+  padding-bottom: 22px;
+}
+
+.rank__medal {
+  font-size: 24px;
+}
+
+.rank__podium-item strong {
+  font-family: var(--font-title), var(--font-ui);
+  font-size: 18px;
+}
+
+.rank__list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+}
+
+.rank__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--sand);
+}
+
+.rank__row:last-child {
+  border-bottom: none;
+}
+
+.rank__row.is-me {
+  font-weight: 700;
+}
+
+.rank__no {
+  width: 30px;
+  text-align: center;
+  color: var(--ink-sub);
+}
+
+.rank__nick {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank__speed {
+  font-size: 13px;
+}
+
+.rank__wins {
+  width: 52px;
+  text-align: right;
+  font-family: var(--font-title), var(--font-ui);
+}
+
+/* 하단 고정 내 순위 */
+.rank__me {
+  border-color: var(--terracotta);
+  padding: 4px 16px;
+}

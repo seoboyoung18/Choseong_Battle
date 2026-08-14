@@ -40,10 +40,12 @@ export function verifyPassword(password, stored) {
 }
 
 export class Room {
-  constructor({ id, code, name, hostId, category, totalRounds, passwordHash, isPublic }) {
+  constructor({ id, code, name, hostId, category, totalRounds, passwordHash, isPublic, mode }) {
     this.id = id;
     this.code = code;
     this.name = name;
+    /** QUICK(빠른 대전) | FRIEND(친구 방). 주간 랭킹은 QUICK만 집계한다 */
+    this.mode = mode ?? 'FRIEND';
     this.hostId = hostId ? String(hostId) : null;
     this.category = category;
     this.totalRounds = totalRounds;
@@ -167,7 +169,15 @@ export class RoomManager {
    * 방을 만든다.
    * @returns {Room}
    */
-  createRoom({ host, name, category, totalRounds = RULES.DEFAULT_ROUNDS, password = null, isPublic = true }) {
+  createRoom({
+    host,
+    name,
+    category,
+    totalRounds = RULES.DEFAULT_ROUNDS,
+    password = null,
+    isPublic = true,
+    mode = 'FRIEND',
+  }) {
     const rounds = Math.min(RULES.MAX_ROUNDS, Math.max(RULES.MIN_ROUNDS, Number(totalRounds) || RULES.DEFAULT_ROUNDS));
 
     let code = generateCode();
@@ -182,6 +192,7 @@ export class RoomManager {
       totalRounds: rounds,
       passwordHash: password ? hashPassword(password) : null,
       isPublic,
+      mode,
     });
 
     this.rooms.set(room.id, room);
@@ -278,9 +289,11 @@ export class RoomManager {
    *
    * games 행을 먼저 만든다 — 첫 라운드가 기록될 때 이미 있어야 FK가 걸린다.
    *
+   * @param {Room} room
+   * @param {{ solo?: boolean }} [opts] 혼자 시작한 판은 랭킹에서 빠진다
    * @returns {Promise<Game | null>}
    */
-  async startGame(room) {
+  async startGame(room, { solo = false } = {}) {
     if (room.status !== 'WAITING') return null;
     room.status = 'PLAYING';
 
@@ -288,6 +301,7 @@ export class RoomManager {
 
     await this.store?.createGame?.({
       gameId,
+      mode: solo ? 'SOLO' : room.mode,
       category: room.category,
       totalRounds: room.totalRounds,
       players: [...room.members.values()],

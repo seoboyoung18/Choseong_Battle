@@ -156,6 +156,7 @@ export class Matchmaker {
       category,
       totalRounds: RULES.DEFAULT_ROUNDS,
       isPublic: false,
+      mode: 'QUICK',
     });
 
     for (const entry of rest) {

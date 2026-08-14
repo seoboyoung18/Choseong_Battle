@@ -15,6 +15,10 @@ CREATE TYPE hint_type AS ENUM ('CHO', 'JUNG', 'MIX', 'OPEN');
 CREATE TYPE round_end_reason AS ENUM ('WON', 'TIMEOUT', 'ALL_PASSED');
 
 CREATE TYPE room_status AS ENUM ('WAITING', 'PLAYING', 'CLOSED');
+
+-- 판의 종류. 주간 랭킹은 QUICK만 집계한다 —
+-- 친구 방은 둘이 짜고 승수를 무한정 만들 수 있고 외부에서 탐지도 어렵다.
+CREATE TYPE game_mode AS ENUM ('QUICK', 'FRIEND', 'SOLO');
 CREATE TYPE word_source AS ENUM ('STD', 'OPEN_DICT', 'WHITELIST', 'REPORT');
 CREATE TYPE word_status AS ENUM ('ACTIVE', 'BANNED', 'PENDING');
 CREATE TYPE report_action AS ENUM ('ADD', 'REMOVE');
@@ -77,6 +81,7 @@ COMMENT ON TABLE room_members IS '대기방 멤버십. 실시간 소스는 Redis
 CREATE TABLE games (
   id           bigserial   PRIMARY KEY,
   room_id      bigint      REFERENCES rooms(id) ON DELETE SET NULL,
+  mode         game_mode   NOT NULL DEFAULT 'QUICK',
   category     category    NOT NULL,
   total_rounds smallint    NOT NULL,
   started_at   timestamptz NOT NULL DEFAULT now(),
@@ -84,6 +89,8 @@ CREATE TABLE games (
 );
 
 CREATE INDEX games_ended_at_idx ON games (ended_at DESC) WHERE ended_at IS NOT NULL;
+-- 주간 랭킹 집계가 훑는 경로: 특정 기간의 끝난 빠른 대전
+CREATE INDEX games_ranking_idx ON games (ended_at) WHERE mode = 'QUICK' AND ended_at IS NOT NULL;
 
 CREATE TABLE game_players (
   game_id       bigint   NOT NULL REFERENCES games(id) ON DELETE CASCADE,
