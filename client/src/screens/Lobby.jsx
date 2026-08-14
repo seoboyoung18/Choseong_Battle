@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 
-import { CATEGORY_LABEL, CATEGORY_ORDER } from '../constants.js';
+import { CATEGORY_LABEL, CATEGORY_ORDER, MATCH_SIZES } from '../constants.js';
 
 export function Lobby({ user, onSignIn, actions, matching, connected }) {
   const [nickname, setNickname] = useState(user?.nickname ?? '');
   const [category, setCategory] = useState('ALL');
+  const [size, setSize] = useState(4);
   const [code, setCode] = useState('');
   const [rounds, setRounds] = useState(10);
 
@@ -44,7 +45,12 @@ export function Lobby({ user, onSignIn, actions, matching, connected }) {
         <div className="spacer" />
         <h2 className="title" style={{ textAlign: 'center' }}>상대를 찾는 중…</h2>
         <p className="muted" style={{ textAlign: 'center' }}>
-          {CATEGORY_LABEL[category]} · 4명이 모이면 바로 시작해요
+          {CATEGORY_LABEL[category]} · {size}명
+        </p>
+        <p className="muted" style={{ textAlign: 'center', margin: 0 }}>
+          {size}명이 모이면 바로 시작해요.
+          <br />
+          15초 안에 다 못 모이면 모인 인원으로 시작합니다.
         </p>
         <div className="spacer" />
         <button type="button" className="btn btn--ghost" onClick={actions.cancelMatching}>
@@ -79,7 +85,24 @@ export function Lobby({ user, onSignIn, actions, matching, connected }) {
         </div>
       </section>
 
-      <button type="button" className="btn" onClick={() => actions.joinMatching(category)}>
+      <section className="card">
+        <strong>인원</strong>
+        <div className="row" style={{ marginTop: 10 }}>
+          {MATCH_SIZES.map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`btn ${size === n ? 'btn--sage' : 'btn--ghost'}`}
+              style={{ flex: 1, padding: '10px 8px', fontSize: 15 }}
+              onClick={() => setSize(n)}
+            >
+              {n}명
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <button type="button" className="btn" onClick={() => actions.joinMatching(category, size)}>
         빠른 대전
       </button>
 

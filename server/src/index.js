@@ -13,7 +13,7 @@ import { Server } from 'socket.io';
 import { RULES, config } from './config.js';
 import { pool, query } from './db/pool.js';
 import { RoomManager } from './game/rooms.js';
-import { Matchmaker, isValidCategory } from './matching/queue.js';
+import { Matchmaker, isValidCategory, isValidSize } from './matching/queue.js';
 import { closeRedis, getRedis } from './redis/client.js';
 import { clearPresence, touchPresence } from './redis/locks.js';
 import { loadDictionary } from './words/dictionary.js';
@@ -97,10 +97,11 @@ gameNsp.on('connection', (socket) => {
 
   // ── 빠른 매칭 ──────────────────────────────────────────────────────────────
 
-  socket.on('matching.join', async ({ category } = {}) => {
+  socket.on('matching.join', async ({ category, size = RULES.MAX_PLAYERS } = {}) => {
     if (!isValidCategory(category)) return fail('INVALID_PARAM', '알 수 없는 카테고리예요');
+    if (!isValidSize(size)) return fail('INVALID_PARAM', '인원수는 2~4명만 고를 수 있어요');
     if (rooms.roomOf(userId)) return fail('ALREADY_IN_ROOM', '이미 방에 있어요');
-    await matchmaker.join({ user, category, socketId: socket.id });
+    await matchmaker.join({ user, category, size: Number(size), socketId: socket.id });
   });
 
   socket.on('matching.cancel', async () => {
@@ -145,11 +146,16 @@ gameNsp.on('connection', (socket) => {
     broadcastRoom(room);
   });
 
-  socket.on('game.start', async () => {
+  socket.on('game.start', async ({ solo = false } = {}) => {
     const room = rooms.roomOf(userId);
     if (!room) return fail('ROOM_NOT_FOUND', '방이 없어요');
     if (room.hostId !== userId) return fail('FORBIDDEN', '방장만 시작할 수 있어요');
-    if (!room.canStart()) return fail('NOT_READY', '아직 준비가 끝나지 않았어요');
+    if (!room.canStart(solo)) {
+      return fail(
+        'NOT_READY',
+        solo ? '혼자 시작은 방에 나만 있을 때만 돼요' : '아직 준비가 끝나지 않았어요',
+      );
+    }
 
     const instance = rooms.startGame(room);
     await instance?.start();

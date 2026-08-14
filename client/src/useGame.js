@@ -116,13 +116,14 @@ export function useGame() {
       setState((prev) => ({ ...initialState, connected: prev.connected }));
     },
     setReady: (isReady) => emit('room.ready', { isReady }),
-    startGame: () => emit('game.start'),
+    startGame: () => emit('game.start', { solo: false }),
+    startSolo: () => emit('game.start', { solo: true }),
     submit: (word) => emit('round.submit', { word }),
     pass: (passed) => emit('round.pass', { passed }),
     react: (emoji) => emit('reaction.send', { emoji }),
-    joinMatching: (category) => {
+    joinMatching: (category, size) => {
       patch({ matching: true });
-      emit('matching.join', { category });
+      emit('matching.join', { category, size });
     },
     cancelMatching: () => {
       patch({ matching: false });

@@ -2,9 +2,9 @@
  * 빠른 매칭 큐 소비자.
  *
  * 규칙 (FR-M2 ~ FR-M4)
- *   - 같은 카테고리를 고른 사람끼리만 매칭한다
- *   - 4인이 모이면 즉시 시작
- *   - 가장 오래 기다린 사람이 15초를 넘겼고 2인 이상이면 현재 인원으로 시작
+ *   - 카테고리와 원하는 인원수가 모두 같은 사람끼리만 매칭한다
+ *   - 원하는 인원이 모이면 즉시 시작
+ *   - 15초를 넘겼고 2인 이상이면 현재 인원으로 시작 (무한 대기 방지)
  *   - 60초를 넘기면 혼자 연습을 제안하고 큐에서 뺀다
  *
  * 대기열은 Redis ZSET이라 서버가 여러 대여도 ZPOPMIN이 같은 유저를 두 방에
@@ -14,7 +14,13 @@
 
 import { RULES } from '../config.js';
 import { CATEGORY } from '../judge/hint.js';
-import { dequeueMatch, enqueueMatch, getQueueSize, popMatchCandidates } from '../redis/locks.js';
+import {
+  dequeueMatch,
+  enqueueMatch,
+  getQueueSize,
+  popMatchCandidates,
+  queueId,
+} from '../redis/locks.js';
 
 export class Matchmaker {
   /**
@@ -30,19 +36,26 @@ export class Matchmaker {
     this.io = io;
     this.intervalMs = intervalMs;
 
-    /** @type {Map<string, { user: object, category: string, socketId: string, joinedAt: number }>} */
+    /** @type {Map<string, { user: object, category: string, size: number, socketId: string, joinedAt: number }>} */
     this.waiting = new Map();
     this.timer = null;
   }
 
-  /** 대기열에 넣는다. */
-  async join({ user, category, socketId }) {
+  /**
+   * 대기열에 넣는다.
+   * @param {object} params
+   * @param {object} params.user
+   * @param {string} params.category
+   * @param {number} params.size 원하는 인원수 (2~4)
+   * @param {string} params.socketId
+   */
+  async join({ user, category, size, socketId }) {
     const id = String(user.userId);
     if (this.waiting.has(id)) return;
 
-    const entry = { user, category, socketId, joinedAt: Date.now() };
+    const entry = { user, category, size, socketId, joinedAt: Date.now() };
     this.waiting.set(id, entry);
-    await enqueueMatch(this.redis, category, id, entry.joinedAt);
+    await enqueueMatch(this.redis, queueId(category, size), id, entry.joinedAt);
   }
 
   /** 대기열에서 뺀다 (취소·연결 끊김). */
@@ -51,7 +64,7 @@ export class Matchmaker {
     const entry = this.waiting.get(id);
     if (!entry) return;
     this.waiting.delete(id);
-    await dequeueMatch(this.redis, entry.category, id);
+    await dequeueMatch(this.redis, queueId(entry.category, entry.size), id);
   }
 
   start() {
@@ -67,21 +80,26 @@ export class Matchmaker {
     this.timer = null;
   }
 
-  /** 대기 중인 카테고리들을 한 번씩 살핀다. */
+  /** 사람이 기다리고 있는 대기열들을 한 번씩 살핀다. */
   async tick() {
     const now = Date.now();
-    const categories = new Set([...this.waiting.values()].map((e) => e.category));
 
-    for (const category of categories) {
-      await this.#dropTimedOut(category, now);
-      await this.#matchCategory(category, now);
+    /** @type {Map<string, { category: string, size: number }>} */
+    const active = new Map();
+    for (const entry of this.waiting.values()) {
+      active.set(queueId(entry.category, entry.size), { category: entry.category, size: entry.size });
+    }
+
+    for (const [qid, { category, size }] of active) {
+      await this.#dropTimedOut(qid, now);
+      await this.#matchQueue(qid, category, size, now);
     }
   }
 
   /** 60초를 넘긴 사람에게 연습을 제안하고 큐에서 뺀다. */
-  async #dropTimedOut(category, now) {
-    for (const [id, entry] of this.waiting) {
-      if (entry.category !== category) continue;
+  async #dropTimedOut(qid, now) {
+    for (const [id, entry] of [...this.waiting]) {
+      if (queueId(entry.category, entry.size) !== qid) continue;
       if (now - entry.joinedAt < RULES.MATCH_TIMEOUT_MS) continue;
 
       await this.cancel(id);
@@ -89,18 +107,21 @@ export class Matchmaker {
     }
   }
 
-  async #matchCategory(category, now) {
-    const localWaiting = [...this.waiting.values()].filter((e) => e.category === category);
+  async #matchQueue(qid, category, size, now) {
+    const localWaiting = [...this.waiting.values()].filter(
+      (e) => queueId(e.category, e.size) === qid,
+    );
     if (localWaiting.length === 0) return;
 
-    const queued = await getQueueSize(this.redis, category);
+    const queued = await getQueueSize(this.redis, qid);
     const oldestWaitedMs = now - Math.min(...localWaiting.map((e) => e.joinedAt));
 
-    const full = queued >= RULES.MAX_PLAYERS;
+    const full = queued >= size;
+    // 원하는 인원이 안 차도 무한정 기다리게 두지 않는다. 2명만 모여도 15초 뒤엔 시작한다.
     const readyByTime = oldestWaitedMs >= RULES.MATCH_WAIT_MS && queued >= RULES.MIN_PLAYERS;
     if (!full && !readyByTime) return;
 
-    const ids = await popMatchCandidates(this.redis, category, RULES.MAX_PLAYERS);
+    const ids = await popMatchCandidates(this.redis, qid, size);
     const entries = [];
     for (const id of ids) {
       const entry = this.waiting.get(id);
@@ -109,7 +130,7 @@ export class Matchmaker {
         entries.push(entry);
       } else {
         // 다른 서버의 유저 — 되돌려 놓는다
-        await enqueueMatch(this.redis, category, id, now);
+        await enqueueMatch(this.redis, qid, id, now);
       }
     }
 
@@ -117,7 +138,7 @@ export class Matchmaker {
       // 혼자 남았다. 큐로 되돌리고 다음 주기를 기다린다.
       for (const entry of entries) {
         this.waiting.set(String(entry.user.userId), entry);
-        await enqueueMatch(this.redis, category, String(entry.user.userId), entry.joinedAt);
+        await enqueueMatch(this.redis, qid, String(entry.user.userId), entry.joinedAt);
       }
       return;
     }
@@ -155,6 +176,10 @@ export class Matchmaker {
       players: room.toState().players,
     });
 
+    // 친구 방과 같은 방식으로 방 상태도 내려보낸다. 이게 없으면 클라이언트가
+    // 참가자 목록을 몰라 스코어보드가 빈 채로 게임이 시작된다.
+    this.io.to(room.id).emit('room.state', room.toState());
+
     const game = this.rooms.startGame(room);
     game?.start().catch((err) => console.error('[match] 게임 시작 실패', err));
   }
@@ -163,4 +188,9 @@ export class Matchmaker {
 /** 카테고리 유효성 — 클라이언트가 아무 값이나 보내는 것을 막는다 */
 export function isValidCategory(value) {
   return Object.hasOwn(CATEGORY, value);
+}
+
+/** 인원수 유효성 */
+export function isValidSize(value) {
+  return RULES.MATCH_SIZES.includes(Number(value));
 }

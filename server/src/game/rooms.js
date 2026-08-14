@@ -106,9 +106,16 @@ export class Room {
     };
   }
 
-  /** 방장을 제외한 전원이 준비했고, 인원이 최소치를 넘었는가 */
-  canStart() {
+  /**
+   * 시작할 수 있는 상태인가.
+   *
+   * @param {boolean} [solo] 혼자 시작하기. 최소 인원 조건을 건너뛴다 —
+   *   방을 만들어놓고 상대를 기다리는 대신 혼자 연습하려는 경우다.
+   * @returns {boolean}
+   */
+  canStart(solo = false) {
     if (this.status !== 'WAITING') return false;
+    if (solo) return this.size === 1;
     if (this.size < RULES.MIN_PLAYERS) return false;
     return [...this.members.values()].every((m) => m.isReady || String(m.userId) === this.hostId);
   }

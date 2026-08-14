@@ -52,6 +52,9 @@ export const RULES = Object.freeze({
   MIN_PLAYERS: 2,
   MAX_PLAYERS: 4,
 
+  /** 빠른 대전에서 고를 수 있는 인원수 */
+  MATCH_SIZES: [2, 3, 4],
+
   /** 라운드 수 (친구 방은 5~20에서 설정, 빠른 대전은 기본값 고정) */
   DEFAULT_ROUNDS: 10,
   MIN_ROUNDS: 5,

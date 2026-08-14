@@ -17,6 +17,15 @@
 
 import { RULES } from '../config.js';
 
+/**
+ * 매칭 대기열 식별자. 카테고리와 원하는 인원수가 모두 같아야 같은 줄에 선다 —
+ * 2인전을 원하는 사람과 4인전을 원하는 사람을 한 방에 넣을 수는 없다.
+ * @param {string} category
+ * @param {number} size
+ * @returns {string}
+ */
+export const queueId = (category, size) => `${category}:${size}`;
+
 /** Redis 키 조립 — 키 문자열을 코드 여기저기 흩뿌리지 않는다 */
 export const keys = {
   /** 라운드 선착 락. 유찰 교체마다 attemptNo가 올라가므로 키도 새로 생긴다 */

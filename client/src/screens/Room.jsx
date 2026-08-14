@@ -9,6 +9,8 @@ export function Room({ room, user, actions }) {
     .filter((p) => !p.isHost)
     .every((p) => p.isReady);
   const canStart = isHost && room.players.length >= 2 && everyoneReady;
+  // 혼자하기는 방에 나만 있을 때만. 남이 있는데 혼자 시작하면 그 사람은 영문도 모르고 튕긴다.
+  const canStartSolo = isHost && room.players.length === 1;
 
   return (
     <div className="screen">
@@ -56,12 +58,32 @@ export function Room({ room, user, actions }) {
 
       {isHost ? (
         <>
-          <button type="button" className="btn" disabled={!canStart} onClick={actions.startGame}>
-            게임 시작
-          </button>
+          <div className="row">
+            <button
+              type="button"
+              className="btn"
+              style={{ flex: 2 }}
+              disabled={!canStart}
+              onClick={actions.startGame}
+            >
+              게임 시작
+            </button>
+            {/* 상대를 기다리지 않고 바로 연습하고 싶을 때. 방에 나 혼자일 때만 켜진다 */}
+            <button
+              type="button"
+              className="btn btn--mustard"
+              style={{ flex: 1 }}
+              disabled={!canStartSolo}
+              onClick={actions.startSolo}
+            >
+              혼자하기
+            </button>
+          </div>
           {!canStart && (
             <p className="muted" style={{ textAlign: 'center', margin: 0 }}>
-              {room.players.length < 2 ? '2명 이상 모여야 시작할 수 있어요' : '전원이 준비해야 시작할 수 있어요'}
+              {room.players.length < 2
+                ? '2명 이상 모여야 시작할 수 있어요 — 혼자 해보려면 오른쪽 버튼을 누르세요'
+                : '전원이 준비해야 시작할 수 있어요'}
             </p>
           )}
         </>
