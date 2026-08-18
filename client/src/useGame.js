@@ -25,6 +25,8 @@ const initialState = {
   connected: false,
   ranking: null, // 주간 랭킹 { week, top, me, minGames }
   showRanking: false,
+  profile: null, // 마이페이지 { recentGames, rankHistory, practiceRecords, ... }
+  showMyPage: false,
   showPractice: false,
   practice: { question: null, streak: 0, result: null, records: null, notice: null },
 };
@@ -47,6 +49,7 @@ export function useGame() {
     // 게임 안에서 쓰는 userId는 서버가 정한다 — handshake에 보낸 임시 id가 아니다
     socket.on('session.ready', (me) => patch({ me }));
     socket.on('ranking.weekly', (ranking) => patch({ ranking }));
+    socket.on('me.profile', (profile) => patch({ profile }));
 
     socket.on('room.state', (room) => {
       setState((prev) => ({
@@ -169,6 +172,15 @@ export function useGame() {
       emit('ranking.weekly');
     },
     closeRanking: () => patch({ showRanking: false }),
+
+    openMyPage: () => {
+      // 열 때마다 새로 받는다 — 방금 끝낸 판이 빠진 전적은 틀린 전적이다
+      patch({ showMyPage: true });
+      emit('me.profile');
+    },
+    closeMyPage: () => patch({ showMyPage: false }),
+    /** 닉네임·아바타 변경. 서버가 확정한 값은 session.ready로 되돌아온다 */
+    updateProfile: ({ nickname, avatarId }) => emit('me.update', { nickname, avatarId }),
 
     openPractice: () => {
       patch({ showPractice: true });

@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Hint } from '../components/Hint.jsx';
 import { Keyboard } from '../components/Keyboard.jsx';
-import { REACTIONS } from '../constants.js';
+import { REACTIONS, avatarOf } from '../constants.js';
 import { HangulComposer, isComplete } from '../hangul/automata.js';
 import { keyToJamo } from '../hangul/keyboard.js';
 import { useCountdown } from '../useGame.js';
@@ -115,7 +115,9 @@ export function Play({ state, user, actions }) {
             key={p.userId}
             className={`play__score ${String(p.userId) === String(user.userId) ? 'is-me' : ''} ${p.connected ? '' : 'is-out'}`}
           >
-            <span className="play__nick">{p.nickname}</span>
+            <span className="play__nick">
+              {avatarOf(p.avatarId).emoji} {p.nickname}
+            </span>
             <strong>{scores[String(p.userId)] ?? 0}</strong>
           </div>
         ))}

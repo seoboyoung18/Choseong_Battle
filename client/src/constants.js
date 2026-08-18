@@ -26,3 +26,31 @@ export const PRACTICE_TIER_ORDER = ['FREE', 'T12S', 'T8S', 'T5S', 'T3S'];
 
 /** 이모지 리액션 4종 (FR-G8) */
 export const REACTIONS = ['👍', '😂', '😱', '🔥'];
+
+/**
+ * 아바타 8종 (FR-A2). 그림 파일이 아직 없어 이모지로 대신 그린다 —
+ * 저장되는 값은 id 번호뿐이라 나중에 그림으로 갈아끼워도 데이터는 그대로다.
+ * 개수는 서버 AVATAR_COUNT와 맞춰야 한다.
+ */
+export const AVATARS = [
+  { id: 1, emoji: '🐰', label: '토끼' },
+  { id: 2, emoji: '🐯', label: '호랑이' },
+  { id: 3, emoji: '🐻', label: '곰' },
+  { id: 4, emoji: '🦊', label: '여우' },
+  { id: 5, emoji: '🦝', label: '너구리' },
+  { id: 6, emoji: '🐿️', label: '다람쥐' },
+  { id: 7, emoji: '🐱', label: '고양이' },
+  { id: 8, emoji: '🐦', label: '까치' },
+];
+
+/** 없는 번호가 와도 화면이 비지 않도록 첫 아바타로 떨어뜨린다 */
+export function avatarOf(id) {
+  return AVATARS.find((a) => a.id === id) ?? AVATARS[0];
+}
+
+/** 게임 모드 표시명 — 서버 game_mode enum과 1:1 대응 */
+export const MODE_LABEL = {
+  QUICK: '빠른 대전',
+  FRIEND: '친구 방',
+  SOLO: '혼자',
+};

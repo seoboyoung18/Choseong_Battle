@@ -260,3 +260,95 @@ test('기록에 실패해도 예외를 던지지 않는다', async (t) => {
     null,
   );
 });
+
+test('프로필을 바꾸면 이름과 아바타가 함께 남는다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const me = await makeUser('바꾸기전');
+  const updated = await store.updateProfile({ userId: me.id, nickname: '바꾼뒤', avatarId: 4 });
+
+  assert.equal(updated.nickname, '바꾼뒤');
+  assert.equal(updated.avatarId, 4);
+
+  const { rows } = await query(`SELECT nickname, avatar_id FROM users WHERE id = $1`, [me.id]);
+  assert.equal(rows[0].nickname, '바꾼뒤');
+  assert.equal(rows[0].avatar_id, 4);
+});
+
+test('최근 전적은 끝난 판만 최신 순으로 준다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const me = await makeUser('최근');
+  const mate = await makeUser('동료');
+
+  const first = `g-${process.pid}-${++seq}`;
+  await store.createGame({
+    gameId: first, category: 'CHO', totalRounds: 10, players: [{ userId: me.id }, { userId: mate.id }],
+  });
+  await store.endGame({
+    gameId: first,
+    ranks: [
+      { userId: me.id, roundWins: 3, avgAnswerMs: 5000, rank: 2, leftEarly: false },
+      { userId: mate.id, roundWins: 7, avgAnswerMs: 4000, rank: 1, leftEarly: false },
+    ],
+  });
+
+  const second = `g-${process.pid}-${++seq}`;
+  await store.createGame({
+    gameId: second, mode: 'SOLO', category: 'ALL', totalRounds: 5, players: [{ userId: me.id }],
+  });
+  await store.endGame({
+    gameId: second,
+    ranks: [{ userId: me.id, roundWins: 5, avgAnswerMs: 3000, rank: 1, leftEarly: false }],
+  });
+
+  // 아직 안 끝난 판은 목록에 끼면 안 된다
+  const running = `g-${process.pid}-${++seq}`;
+  await store.createGame({ gameId: running, category: 'ALL', totalRounds: 10, players: [{ userId: me.id }] });
+
+  const games = await store.getRecentGames(me.id);
+  assert.equal(games.length, 2, '진행 중인 판이 최근 전적에 섞였다');
+
+  assert.equal(games[0].mode, 'SOLO', '최신 판이 앞에 오지 않았다');
+  assert.equal(games[0].players, 1);
+  assert.equal(games[0].finalRank, 1);
+  assert.equal(games[0].roundWins, 5);
+
+  assert.equal(games[1].mode, 'QUICK');
+  assert.equal(games[1].players, 2, '같이 한 사람 수를 세지 못했다');
+  assert.equal(games[1].finalRank, 2);
+  assert.ok(games[1].endedAt, '끝난 시각이 비어 있다');
+});
+
+test('최근 전적은 요청한 개수까지만 준다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const me = await makeUser('많이한');
+  for (let i = 0; i < 3; i += 1) {
+    const gameId = `g-${process.pid}-${++seq}`;
+    await store.createGame({ gameId, category: 'ALL', totalRounds: 10, players: [{ userId: me.id }] });
+    await store.endGame({
+      gameId,
+      ranks: [{ userId: me.id, roundWins: i, avgAnswerMs: 3000, rank: 1, leftEarly: false }],
+    });
+  }
+
+  assert.equal((await store.getRecentGames(me.id, 2)).length, 2);
+});
+
+test('주차별 랭킹 이력은 최신 주부터 준다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const me = await makeUser('이력');
+  await query(
+    `INSERT INTO weekly_rankings (week, user_id, round_wins, avg_answer_ms, games_counted, rank)
+     VALUES ($1, $3, 30, 4000, 5, 2), ($2, $3, 12, 5200, 3, 9)`,
+    ['2026-W20', '2026-W19', me.id],
+  );
+
+  const history = await store.getRankHistory(me.id);
+  assert.deepEqual(history.map((h) => h.week), ['2026-W20', '2026-W19']);
+  assert.equal(history[0].rank, 2);
+  assert.equal(history[0].roundWins, 30);
+  assert.equal(history[1].gamesCounted, 3);
+});

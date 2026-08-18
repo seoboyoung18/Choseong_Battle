@@ -182,3 +182,9 @@ body {
 .shake {
   animation: shake 0.32s;
 }
+
+/* 카드 헤더 옆에 붙는 작은 버튼 ('수정', '닫기') */
+.btn--sm {
+  padding: 8px 12px;
+  font-size: 14px;
+}

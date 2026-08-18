@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { CATEGORY_LABEL, CATEGORY_ORDER, MATCH_SIZES } from '../constants.js';
+import { CATEGORY_LABEL, CATEGORY_ORDER, MATCH_SIZES, avatarOf } from '../constants.js';
 
 /** 홈 상단 전적 칸 하나 */
 function Stat({ label, value }) {
@@ -14,8 +14,8 @@ function Stat({ label, value }) {
   );
 }
 
-export function Lobby({ user, onSignIn, actions, matching, connected, connecting }) {
-  const [nickname, setNickname] = useState(user?.nickname ?? '');
+export function Lobby({ user, defaultNickname = '', onSignIn, actions, matching, connected, connecting }) {
+  const [nickname, setNickname] = useState(user?.nickname ?? defaultNickname);
   const [category, setCategory] = useState('ALL');
   const [size, setSize] = useState(4);
   const [code, setCode] = useState('');
@@ -75,7 +75,15 @@ export function Lobby({ user, onSignIn, actions, matching, connected, connecting
       <div className="row">
         <h1 className="title">초성배틀</h1>
         <div className="spacer" />
-        <span className="muted">{connected ? user.nickname : '연결 중…'}</span>
+        {/* 내 이름을 누르면 마이페이지 — 홈에 따로 메뉴를 두지 않는다 */}
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm"
+          onClick={actions.openMyPage}
+          disabled={!connected}
+        >
+          {avatarOf(user.avatarId).emoji} {connected ? user.nickname : '연결 중…'}
+        </button>
       </div>
 
       {/* 전적 · 주간 랭크 (FR-A4) */}

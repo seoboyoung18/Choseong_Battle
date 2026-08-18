@@ -1,6 +1,6 @@
 /** 대기방 — 멤버가 모이고 방장이 시작한다. */
 
-import { CATEGORY_LABEL } from '../constants.js';
+import { CATEGORY_LABEL, avatarOf } from '../constants.js';
 
 export function Room({ room, user, actions }) {
   const me = room.players.find((p) => String(p.userId) === String(user.userId));
@@ -42,6 +42,7 @@ export function Room({ room, user, actions }) {
               className="row"
               style={{ padding: '10px 0', borderBottom: '1px solid var(--sand)' }}
             >
+              <span aria-hidden="true">{avatarOf(p.avatarId).emoji}</span>
               <span style={{ fontWeight: 600 }}>{p.nickname}</span>
               {p.isHost && <span className="muted">방장</span>}
               <div className="spacer" />

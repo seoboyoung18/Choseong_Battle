@@ -397,4 +397,81 @@ export class PostgresStore {
       };
     });
   }
+
+  /**
+   * 닉네임·아바타 변경. 마이페이지에서만 부른다.
+   * @param {{ userId: number, nickname: string, avatarId: number }} params
+   * @returns {Promise<{ id: number, nickname: string, avatarId: number } | null>}
+   */
+  async updateProfile({ userId, nickname, avatarId }) {
+    return this.#safe('프로필 수정', async () => {
+      const { rows } = await this.db.query(
+        `UPDATE users SET nickname = $2, avatar_id = $3
+          WHERE id = $1
+      RETURNING id, nickname, avatar_id`,
+        [userId, nickname, avatarId],
+      );
+      if (!rows[0]) return null;
+      return { id: Number(rows[0].id), nickname: rows[0].nickname, avatarId: rows[0].avatar_id };
+    });
+  }
+
+  /**
+   * 최근 전적. 끝난 판만, 최신 순.
+   * @param {number} userId
+   * @param {number} [limit]
+   */
+  async getRecentGames(userId, limit = 10) {
+    const rows = await this.#safe('최근 전적 조회', async () => {
+      const result = await this.db.query(
+        `SELECT g.id, g.mode, g.category, g.total_rounds, g.ended_at,
+                gp.round_wins, gp.final_rank, gp.avg_answer_ms,
+                (SELECT count(*) FROM game_players x WHERE x.game_id = g.id)::int AS players
+           FROM game_players gp
+           JOIN games g ON g.id = gp.game_id
+          WHERE gp.user_id = $1 AND g.ended_at IS NOT NULL
+          ORDER BY g.ended_at DESC
+          LIMIT $2`,
+        [userId, limit],
+      );
+      return result.rows;
+    });
+    return (rows ?? []).map((r) => ({
+      gameId: Number(r.id),
+      mode: r.mode,
+      category: r.category,
+      totalRounds: r.total_rounds,
+      players: r.players,
+      roundWins: r.round_wins,
+      finalRank: r.final_rank,
+      avgAnswerMs: r.avg_answer_ms,
+      endedAt: r.ended_at,
+    }));
+  }
+
+  /**
+   * 지난 주차 랭킹 기록. 이번 주가 비어 있어도 예전 성적은 남아 있어야 한다.
+   * @param {number} userId
+   * @param {number} [limit]
+   */
+  async getRankHistory(userId, limit = 8) {
+    const rows = await this.#safe('랭킹 이력 조회', async () => {
+      const result = await this.db.query(
+        `SELECT week, rank, round_wins, avg_answer_ms, games_counted
+           FROM weekly_rankings
+          WHERE user_id = $1
+          ORDER BY week DESC
+          LIMIT $2`,
+        [userId, limit],
+      );
+      return result.rows;
+    });
+    return (rows ?? []).map((r) => ({
+      week: r.week,
+      rank: r.rank,
+      roundWins: r.round_wins,
+      avgAnswerMs: r.avg_answer_ms,
+      gamesCounted: r.games_counted,
+    }));
+  }
 }

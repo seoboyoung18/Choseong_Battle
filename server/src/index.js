@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import express from 'express';
 import { Server } from 'socket.io';
 
-import { PRACTICE_TIERS, RULES, config } from './config.js';
+import { AVATAR_COUNT, PRACTICE_TIERS, RULES, config } from './config.js';
 import { pool, query } from './db/pool.js';
 import { PostgresStore } from './db/store.js';
 import { PracticeSession } from './game/practice.js';
@@ -273,6 +273,55 @@ gameNsp.on('connection', (socket) => {
   });
 
   socket.on('me.refresh', async () => {
+    const [stats, ranking] = await Promise.all([
+      store.getUserStats(user.userId),
+      store.getWeeklyRanking({ userId: user.userId }),
+    ]);
+    socket.emit('session.ready', { ...user, stats, weeklyRank: ranking?.me ?? null });
+  });
+
+  // ── 마이페이지 ────────────────────────────────────────────────────────────
+
+  // 홈에 띄우는 요약과 달리 마이페이지는 있는 기록을 한 번에 다 내려보낸다 —
+  // 화면 하나를 그리려고 네 번 왕복하는 것보다 낫다.
+  socket.on('me.profile', async () => {
+    const [stats, ranking, recentGames, rankHistory, practiceRecords] = await Promise.all([
+      store.getUserStats(user.userId),
+      store.getWeeklyRanking({ userId: user.userId }),
+      store.getRecentGames(user.userId),
+      store.getRankHistory(user.userId),
+      store.getPracticeRecords(user.userId),
+    ]);
+    socket.emit('me.profile', {
+      ...user,
+      stats,
+      weeklyRank: ranking?.me ?? null,
+      recentGames,
+      rankHistory,
+      practiceRecords,
+    });
+  });
+
+  socket.on('me.update', async ({ nickname, avatarId } = {}) => {
+    // 방 안에서 이름이 바뀌면 다른 사람 화면의 스코어보드와 어긋난다. 마이페이지는
+    // 홈에서만 열리니 여기서 막아도 잃는 게 없다.
+    if (rooms.roomOf(userId)) return fail('ALREADY_IN_ROOM', '게임 중에는 바꿀 수 없어요');
+
+    const name = String(nickname ?? '').trim().slice(0, 12);
+    if (name.length < 1) return fail('INVALID_PARAM', '닉네임을 입력해 주세요');
+
+    const avatar = Number(avatarId);
+    if (!Number.isInteger(avatar) || avatar < 1 || avatar > AVATAR_COUNT) {
+      return fail('INVALID_PARAM', '없는 아바타예요');
+    }
+
+    const updated = await store.updateProfile({ userId: user.userId, nickname: name, avatarId: avatar });
+    if (!updated) return fail('UPDATE_FAILED', '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요');
+
+    // socket.data.user를 그대로 고친다 — 이후 방 입장·게임에 새 이름이 따라간다
+    user.nickname = updated.nickname;
+    user.avatarId = updated.avatarId;
+
     const [stats, ranking] = await Promise.all([
       store.getUserStats(user.userId),
       store.getWeeklyRanking({ userId: user.userId }),

@@ -6,9 +6,10 @@
  * 접속에만 쓰이고, 방·스코어보드에서 나를 찾는 데는 서버가 준 userId를 쓴다.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Lobby } from './screens/Lobby.jsx';
+import { MyPage } from './screens/MyPage.jsx';
 import { Play } from './screens/Play.jsx';
 import { Practice } from './screens/Practice.jsx';
 import { Ranking } from './screens/Ranking.jsx';
@@ -30,23 +31,60 @@ function loadAccount() {
   return id;
 }
 
+/**
+ * 마이페이지에서 바꾼 이름·아바타를 기억한다. 서버는 접속할 때마다 handshake로
+ * 온 프로필로 users 행을 덮어쓰기 때문에, 이 값을 되돌려 보내지 않으면
+ * 새로고침 한 번에 바꾼 아바타가 원래대로 돌아간다.
+ *
+ * TODO: 토스 로그인이 붙으면 프로필은 서버가 들고 있고 이 저장은 사라진다.
+ */
+function loadProfile() {
+  try {
+    return JSON.parse(sessionStorage.getItem('cb.profile') ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
 export default function App() {
   const { state, signIn, actions } = useGame();
   const [signedIn, setSignedIn] = useState(false);
+  const [saved] = useState(loadProfile);
 
   const handleSignIn = (nickname) => {
     setSignedIn(true);
-    signIn({ userId: loadAccount(), nickname, avatarId: 1 });
+    signIn({ userId: loadAccount(), nickname, avatarId: saved.avatarId ?? 1 });
   };
+
+  // 서버가 확정한 프로필을 그대로 되받아 적어둔다
+  const { nickname: myNick, avatarId: myAvatar } = state.me ?? {};
+  useEffect(() => {
+    if (!myNick) return;
+    sessionStorage.setItem('cb.profile', JSON.stringify({ nickname: myNick, avatarId: myAvatar }));
+  }, [myNick, myAvatar]);
 
   // 서버가 신원을 확정해줄 때까지는 로그인 화면을 유지한다
   if (!signedIn || !state.me) {
-    return <Lobby user={null} onSignIn={handleSignIn} actions={actions} connecting={signedIn} />;
+    return (
+      <Lobby
+        user={null}
+        defaultNickname={saved.nickname ?? ''}
+        onSignIn={handleSignIn}
+        actions={actions}
+        connecting={signedIn}
+      />
+    );
   }
 
   const user = state.me;
 
-  // 랭킹·연습은 어느 화면에서 열든 그 위에 덮인다
+  // 랭킹·연습·마이페이지는 어느 화면에서 열든 그 위에 덮인다
+  if (state.showMyPage) {
+    return (
+      <MyPage user={user} profile={state.profile} actions={actions} onClose={actions.closeMyPage} />
+    );
+  }
+
   if (state.showRanking) {
     return <Ranking ranking={state.ranking} user={user} onClose={actions.closeRanking} />;
   }

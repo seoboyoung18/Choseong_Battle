@@ -1,0 +1,139 @@
+/* 카드가 여러 장 쌓이는 화면이라 헤더는 고정하고 본문만 굴린다 */
+.mypage__scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* 스크롤 컨테이너 안에서 카드 테두리가 잘리지 않게 */
+  padding: 2px;
+  margin: -2px;
+}
+
+.mypage__face {
+  font-size: 40px;
+  line-height: 1;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--sand);
+}
+
+.mypage__nick {
+  font-family: var(--font-title), var(--font-ui);
+  font-size: 20px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 프로필 편집 ───────────────────────────────────────────────────────────── */
+
+.mypage__editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--sand);
+}
+
+.mypage__avatars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.mypage__avatar {
+  appearance: none;
+  aspect-ratio: 1;
+  font-size: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 2px solid var(--sand);
+  cursor: pointer;
+}
+
+.mypage__avatar.is-picked {
+  border-color: var(--terracotta);
+  background: var(--card);
+}
+
+/* ── 통계 · 목록 ───────────────────────────────────────────────────────────── */
+
+.mypage__stat {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+
+.mypage__stat strong {
+  display: block;
+  font-family: var(--font-title), var(--font-ui);
+  font-size: 22px;
+}
+
+.mypage__stat span {
+  font-size: 12px;
+}
+
+.mypage__list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.mypage__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sand);
+  font-size: 15px;
+}
+
+.mypage__row:last-child {
+  border-bottom: none;
+}
+
+/* 가운데 라벨만 늘어나고 양끝 숫자는 제자리를 지킨다 */
+.mypage__row-main {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypage__row-sub {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.mypage__row strong {
+  font-family: var(--font-title), var(--font-ui);
+  white-space: nowrap;
+}
+
+.mypage__badge {
+  width: 38px;
+  flex: none;
+  text-align: center;
+  font-size: 13px;
+  padding: 3px 0;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--sand);
+  color: var(--ink-sub);
+}
+
+.mypage__badge.is-win {
+  background: var(--mustard);
+  border-color: var(--mustard-dark);
+  color: #fff;
+  font-weight: 700;
+}
