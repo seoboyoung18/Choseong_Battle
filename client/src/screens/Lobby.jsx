@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 
-import { CATEGORY_LABEL, CATEGORY_ORDER, MATCH_SIZES, avatarOf } from '../constants.js';
+import { Avatar } from '../avatar/Avatar.jsx';
+import { CATEGORY_LABEL, CATEGORY_ORDER, MATCH_SIZES } from '../constants.js';
 
 /** 홈 상단 전적 칸 하나 */
 function Stat({ label, value }) {
@@ -82,7 +83,8 @@ export function Lobby({ user, defaultNickname = '', onSignIn, actions, matching,
           onClick={actions.openMyPage}
           disabled={!connected}
         >
-          {avatarOf(user.avatarId).emoji} {connected ? user.nickname : '연결 중…'}
+          <Avatar appearance={user.appearance} size={22} />
+          {connected ? user.nickname : '연결 중…'}
         </button>
       </div>
 

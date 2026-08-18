@@ -92,9 +92,3 @@ export const PRACTICE_TIERS = Object.freeze({
 });
 
 export const PRACTICE_TIER_ORDER = Object.freeze(['FREE', 'T12S', 'T8S', 'T5S', 'T3S']);
-
-/**
- * 고를 수 있는 아바타 수 (FR-A2). 실제 그림은 아직 없어 클라이언트가 이모지로
- * 대신 그리지만, 저장되는 값은 1..N 번호라 그림이 붙어도 데이터는 그대로다.
- */
-export const AVATAR_COUNT = 8;

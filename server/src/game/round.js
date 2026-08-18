@@ -39,7 +39,7 @@ export class Game {
   /**
    * @param {object} params
    * @param {string} params.gameId
-   * @param {Array<{ userId: number|string, nickname: string, avatarId?: number }>} params.players
+   * @param {Array<{ userId: number|string, nickname: string, appearance?: object }>} params.players
    * @param {string} params.category CATEGORY 값
    * @param {number} [params.totalRounds]
    * @param {{ has: (w: string) => boolean, pickWord: Function }} params.dictionary
@@ -74,11 +74,11 @@ export class Game {
     this.rng = rng;
     this.timers = timers;
 
-    /** @type {Map<string, { userId: any, nickname: string, avatarId: number, connected: boolean }>} */
+    /** @type {Map<string, { userId: any, nickname: string, appearance: object, connected: boolean }>} */
     this.players = new Map(
       players.map((p) => [
         String(p.userId),
-        { ...p, avatarId: p.avatarId ?? 1, connected: true },
+        { ...p, appearance: p.appearance ?? null, connected: true },
       ]),
     );
 

@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { REJECT_MESSAGE, connect } from './socket/client.js';
 
 const initialState = {
-  me: null, // 서버가 확정한 내 신원 { userId, nickname, avatarId, stats }
+  me: null, // 서버가 확정한 내 신원 { userId, nickname, appearance, stats }
   phase: 'LOBBY', // LOBBY | ROOM | PLAYING | RESULT
   room: null,
   round: null, // { roundNo, totalRounds, hint, deadlineTs, suddenDeath }
@@ -180,7 +180,7 @@ export function useGame() {
     },
     closeMyPage: () => patch({ showMyPage: false }),
     /** 닉네임·아바타 변경. 서버가 확정한 값은 session.ready로 되돌아온다 */
-    updateProfile: ({ nickname, avatarId }) => emit('me.update', { nickname, avatarId }),
+    updateProfile: ({ nickname, appearance }) => emit('me.update', { nickname, appearance }),
 
     openPractice: () => {
       patch({ showPractice: true });

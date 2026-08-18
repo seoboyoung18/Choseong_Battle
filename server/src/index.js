@@ -10,7 +10,8 @@ import { createServer } from 'node:http';
 import express from 'express';
 import { Server } from 'socket.io';
 
-import { AVATAR_COUNT, PRACTICE_TIERS, RULES, config } from './config.js';
+import { validateAppearance } from '../../shared/avatar.js';
+import { PRACTICE_TIERS, RULES, config } from './config.js';
 import { pool, query } from './db/pool.js';
 import { PostgresStore } from './db/store.js';
 import { PracticeSession } from './game/practice.js';
@@ -78,7 +79,7 @@ app.get('/api/v1/rooms', (_req, res) => {
  * handshake.auth의 값을 그대로 신뢰하므로 절대 이 상태로 배포하면 안 된다.
  */
 gameNsp.use(async (socket, next) => {
-  const { userId, nickname, avatarId } = socket.handshake.auth ?? {};
+  const { userId, nickname } = socket.handshake.auth ?? {};
   if (!userId || !nickname) return next(new Error('UNAUTHORIZED'));
 
   // 클라이언트가 보낸 id는 계정 식별자일 뿐이고, 게임 안에서 쓰는 userId는
@@ -86,14 +87,14 @@ gameNsp.use(async (socket, next) => {
   const account = await store.upsertUser({
     tossUserId: String(userId),
     nickname: String(nickname).slice(0, 12),
-    avatarId: Number(avatarId) || 1,
   });
   if (!account) return next(new Error('SIGNIN_FAILED'));
 
+  // 캐릭터는 DB에 있는 것을 그대로 쓴다 — 접속할 때 클라이언트가 보내온 값이 아니다
   socket.data.user = {
     userId: account.id,
     nickname: account.nickname,
-    avatarId: account.avatarId,
+    appearance: account.appearance,
   };
   next();
 });
@@ -285,12 +286,13 @@ gameNsp.on('connection', (socket) => {
   // 홈에 띄우는 요약과 달리 마이페이지는 있는 기록을 한 번에 다 내려보낸다 —
   // 화면 하나를 그리려고 네 번 왕복하는 것보다 낫다.
   socket.on('me.profile', async () => {
-    const [stats, ranking, recentGames, rankHistory, practiceRecords] = await Promise.all([
+    const [stats, ranking, recentGames, rankHistory, practiceRecords, progress] = await Promise.all([
       store.getUserStats(user.userId),
       store.getWeeklyRanking({ userId: user.userId }),
       store.getRecentGames(user.userId),
       store.getRankHistory(user.userId),
       store.getPracticeRecords(user.userId),
+      store.getUnlockProgress(user.userId),
     ]);
     socket.emit('me.profile', {
       ...user,
@@ -299,28 +301,38 @@ gameNsp.on('connection', (socket) => {
       recentGames,
       rankHistory,
       practiceRecords,
+      progress,
     });
   });
 
-  socket.on('me.update', async ({ nickname, avatarId } = {}) => {
-    // 방 안에서 이름이 바뀌면 다른 사람 화면의 스코어보드와 어긋난다. 마이페이지는
+  socket.on('me.update', async ({ nickname, appearance } = {}) => {
+    // 방 안에서 이름·캐릭터가 바뀌면 다른 사람 화면과 어긋난다. 마이페이지는
     // 홈에서만 열리니 여기서 막아도 잃는 게 없다.
     if (rooms.roomOf(userId)) return fail('ALREADY_IN_ROOM', '게임 중에는 바꿀 수 없어요');
 
     const name = String(nickname ?? '').trim().slice(0, 12);
     if (name.length < 1) return fail('INVALID_PARAM', '닉네임을 입력해 주세요');
 
-    const avatar = Number(avatarId);
-    if (!Number.isInteger(avatar) || avatar < 1 || avatar > AVATAR_COUNT) {
-      return fail('INVALID_PARAM', '없는 아바타예요');
+    // 잠긴 파츠를 입고 오는 요청을 막는 유일한 지점이다 — 화면의 자물쇠는 안내일 뿐이다
+    const progress = await store.getUnlockProgress(user.userId);
+    const checked = validateAppearance(appearance, progress);
+    if (!checked.ok) {
+      return fail(
+        'INVALID_PARAM',
+        checked.reason === 'LOCKED' ? '아직 잠긴 파츠예요' : '없는 파츠예요',
+      );
     }
 
-    const updated = await store.updateProfile({ userId: user.userId, nickname: name, avatarId: avatar });
+    const updated = await store.updateProfile({
+      userId: user.userId,
+      nickname: name,
+      appearance: checked.appearance,
+    });
     if (!updated) return fail('UPDATE_FAILED', '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요');
 
-    // socket.data.user를 그대로 고친다 — 이후 방 입장·게임에 새 이름이 따라간다
+    // socket.data.user를 그대로 고친다 — 이후 방 입장·게임에 새 캐릭터가 따라간다
     user.nickname = updated.nickname;
-    user.avatarId = updated.avatarId;
+    user.appearance = updated.appearance;
 
     const [stats, ranking] = await Promise.all([
       store.getUserStats(user.userId),

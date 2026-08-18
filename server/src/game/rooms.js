@@ -53,7 +53,7 @@ export class Room {
     this.isPublic = isPublic;
     this.status = 'WAITING';
 
-    /** @type {Map<string, { userId: any, nickname: string, avatarId: number, isReady: boolean, connected: boolean }>} */
+    /** @type {Map<string, { userId: any, nickname: string, appearance: object, isReady: boolean, connected: boolean }>} */
     this.members = new Map();
     /** @type {Game | null} */
     this.game = null;
@@ -87,7 +87,7 @@ export class Room {
       players: [...this.members.values()].map((m) => ({
         userId: m.userId,
         nickname: m.nickname,
-        avatarId: m.avatarId,
+        appearance: m.appearance,
         isHost: String(m.userId) === this.hostId,
         isReady: m.isReady,
         connected: m.connected,
@@ -225,7 +225,7 @@ export class RoomManager {
     room.members.set(String(user.userId), {
       userId: user.userId,
       nickname: user.nickname,
-      avatarId: user.avatarId ?? 1,
+      appearance: user.appearance ?? null,
       isReady: false,
       connected: true,
     });

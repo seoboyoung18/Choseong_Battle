@@ -32,43 +32,36 @@ function loadAccount() {
 }
 
 /**
- * 마이페이지에서 바꾼 이름·아바타를 기억한다. 서버는 접속할 때마다 handshake로
- * 온 프로필로 users 행을 덮어쓰기 때문에, 이 값을 되돌려 보내지 않으면
- * 새로고침 한 번에 바꾼 아바타가 원래대로 돌아간다.
+ * 로그인 화면에 지난번 닉네임을 채워둔다. 캐릭터는 서버(DB)가 들고 있어서
+ * 여기서 기억할 게 없다 — 닉네임만 개발용 로그인 화면이 다시 물어보기 때문이다.
  *
- * TODO: 토스 로그인이 붙으면 프로필은 서버가 들고 있고 이 저장은 사라진다.
+ * TODO: 토스 로그인이 붙으면 이 저장도 사라진다.
  */
-function loadProfile() {
-  try {
-    return JSON.parse(sessionStorage.getItem('cb.profile') ?? '{}');
-  } catch {
-    return {};
-  }
+function loadNickname() {
+  return sessionStorage.getItem('cb.nickname') ?? '';
 }
 
 export default function App() {
   const { state, signIn, actions } = useGame();
   const [signedIn, setSignedIn] = useState(false);
-  const [saved] = useState(loadProfile);
+  const [savedNickname] = useState(loadNickname);
 
   const handleSignIn = (nickname) => {
     setSignedIn(true);
-    signIn({ userId: loadAccount(), nickname, avatarId: saved.avatarId ?? 1 });
+    signIn({ userId: loadAccount(), nickname });
   };
 
-  // 서버가 확정한 프로필을 그대로 되받아 적어둔다
-  const { nickname: myNick, avatarId: myAvatar } = state.me ?? {};
+  const myNick = state.me?.nickname;
   useEffect(() => {
-    if (!myNick) return;
-    sessionStorage.setItem('cb.profile', JSON.stringify({ nickname: myNick, avatarId: myAvatar }));
-  }, [myNick, myAvatar]);
+    if (myNick) sessionStorage.setItem('cb.nickname', myNick);
+  }, [myNick]);
 
   // 서버가 신원을 확정해줄 때까지는 로그인 화면을 유지한다
   if (!signedIn || !state.me) {
     return (
       <Lobby
         user={null}
-        defaultNickname={saved.nickname ?? ''}
+        defaultNickname={savedNickname}
         onSignIn={handleSignIn}
         actions={actions}
         connecting={signedIn}
@@ -81,7 +74,13 @@ export default function App() {
   // 랭킹·연습·마이페이지는 어느 화면에서 열든 그 위에 덮인다
   if (state.showMyPage) {
     return (
-      <MyPage user={user} profile={state.profile} actions={actions} onClose={actions.closeMyPage} />
+      <MyPage
+        user={user}
+        profile={state.profile}
+        notice={state.notice}
+        actions={actions}
+        onClose={actions.closeMyPage}
+      />
     );
   }
 

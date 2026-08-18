@@ -11,13 +11,14 @@ import { io } from 'socket.io-client';
 const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? 'http://localhost:3000';
 
 /**
- * @param {{ userId: string|number, nickname: string, avatarId?: number }} user
+ * @param {{ userId: string|number, nickname: string }} user
  * @returns {import('socket.io-client').Socket}
  */
 export function connect(user) {
   // TODO: 토스 로그인 붙으면 auth에 JWT를 싣는다. 지금은 개발용 스텁이다.
   return io(`${SERVER_URL}/game`, {
-    auth: { userId: user.userId, nickname: user.nickname, avatarId: user.avatarId ?? 1 },
+    // 캐릭터는 싣지 않는다 — 서버가 DB에 있는 것을 쓴다 (잠긴 파츠 위조 방지)
+    auth: { userId: user.userId, nickname: user.nickname },
     transports: ['websocket'],
   });
 }

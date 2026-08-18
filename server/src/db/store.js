@@ -30,7 +30,7 @@ function toRankRow(row) {
     rank: row.rank,
     userId: Number(row.user_id),
     nickname: row.nickname,
-    avatarId: row.avatar_id,
+    appearance: row.appearance,
     roundWins: row.round_wins,
     avgAnswerMs: row.avg_answer_ms,
     gamesCounted: row.games_counted,
@@ -74,21 +74,25 @@ export class PostgresStore {
    *
    * 닉네임은 재접속할 때마다 갱신한다 — 유저가 바꾼 이름이 반영되어야 한다.
    *
-   * @param {{ tossUserId: string, nickname: string, avatarId?: number }} params
-   * @returns {Promise<{ id: number, nickname: string, avatarId: number } | null>}
+   * 캐릭터(appearance)는 일부러 받지 않는다 — 접속할 때 클라이언트가 보내는 값을
+   * 그대로 믿으면 잠긴 파츠를 입고 들어올 수 있다. 캐릭터는 me.update 한 곳에서만
+   * 바뀌고, 그래서 다시 접속해도 DB에 있던 캐릭터가 그대로 따라온다.
+   *
+   * @param {{ tossUserId: string, nickname: string }} params
+   * @returns {Promise<{ id: number, nickname: string, appearance: object } | null>}
    */
-  async upsertUser({ tossUserId, nickname, avatarId = 1 }) {
+  async upsertUser({ tossUserId, nickname }) {
     return this.#safe('유저 등록', async () => {
       const { rows } = await this.db.query(
-        `INSERT INTO users (toss_user_id, nickname, avatar_id)
-         VALUES ($1, $2, $3)
+        `INSERT INTO users (toss_user_id, nickname)
+         VALUES ($1, $2)
          ON CONFLICT (toss_user_id) DO UPDATE
-           SET nickname = EXCLUDED.nickname, avatar_id = EXCLUDED.avatar_id
-         RETURNING id, nickname, avatar_id`,
-        [tossUserId, nickname, avatarId],
+           SET nickname = EXCLUDED.nickname
+         RETURNING id, nickname, appearance`,
+        [tossUserId, nickname],
       );
       const row = rows[0];
-      return { id: Number(row.id), nickname: row.nickname, avatarId: row.avatar_id };
+      return { id: Number(row.id), nickname: row.nickname, appearance: row.appearance };
     });
   }
 
@@ -297,7 +301,7 @@ export class PostgresStore {
     return this.#safe('주간 랭킹 조회', async () => {
       const { rows: top } = await this.db.query(
         `SELECT wr.rank, wr.round_wins, wr.avg_answer_ms, wr.games_counted,
-                u.id AS user_id, u.nickname, u.avatar_id
+                u.id AS user_id, u.nickname, u.appearance
            FROM weekly_rankings wr
            JOIN users u ON u.id = wr.user_id
           WHERE wr.week = $1
@@ -310,7 +314,7 @@ export class PostgresStore {
       if (userId) {
         const { rows } = await this.db.query(
           `SELECT wr.rank, wr.round_wins, wr.avg_answer_ms, wr.games_counted,
-                  u.id AS user_id, u.nickname, u.avatar_id
+                  u.id AS user_id, u.nickname, u.appearance
              FROM weekly_rankings wr
              JOIN users u ON u.id = wr.user_id
             WHERE wr.week = $1 AND wr.user_id = $2`,
@@ -399,20 +403,53 @@ export class PostgresStore {
   }
 
   /**
-   * 닉네임·아바타 변경. 마이페이지에서만 부른다.
-   * @param {{ userId: number, nickname: string, avatarId: number }} params
-   * @returns {Promise<{ id: number, nickname: string, avatarId: number } | null>}
+   * 파츠 해금 판정에 쓰는 진행도.
+   *
+   * 전적과 따로 세는 이유: 해금은 "누적"이 기준이라 연습 최고 연속까지 함께
+   * 봐야 하고, 홈 전적은 빠른 대전만 센다.
+   *
+   * @param {number} userId
+   * @returns {Promise<{ roundWins: number, games: number, practiceStreak: number }>}
    */
-  async updateProfile({ userId, nickname, avatarId }) {
+  async getUnlockProgress(userId) {
+    const row = await this.#safe('해금 진행도 조회', async () => {
+      const { rows } = await this.db.query(
+        `SELECT coalesce(g.round_wins, 0)::int  AS round_wins,
+                coalesce(g.games, 0)::int       AS games,
+                coalesce(p.best_streak, 0)::int AS practice_streak
+           FROM (SELECT sum(gp.round_wins) AS round_wins, count(*) AS games
+                   FROM game_players gp
+                   JOIN games gm ON gm.id = gp.game_id
+                  WHERE gp.user_id = $1 AND gm.ended_at IS NOT NULL) g
+           FULL JOIN (SELECT max(best_streak) AS best_streak
+                        FROM practice_records WHERE user_id = $1) p ON true`,
+        [userId],
+      );
+      return rows[0];
+    });
+    return {
+      roundWins: row?.round_wins ?? 0,
+      games: row?.games ?? 0,
+      practiceStreak: row?.practice_streak ?? 0,
+    };
+  }
+
+  /**
+   * 닉네임·캐릭터 변경. 마이페이지에서만 부른다.
+   * appearance는 부르는 쪽에서 이미 검사된 값이어야 한다 (shared/avatar.js).
+   * @param {{ userId: number, nickname: string, appearance: object }} params
+   * @returns {Promise<{ id: number, nickname: string, appearance: object } | null>}
+   */
+  async updateProfile({ userId, nickname, appearance }) {
     return this.#safe('프로필 수정', async () => {
       const { rows } = await this.db.query(
-        `UPDATE users SET nickname = $2, avatar_id = $3
+        `UPDATE users SET nickname = $2, appearance = $3::jsonb
           WHERE id = $1
-      RETURNING id, nickname, avatar_id`,
-        [userId, nickname, avatarId],
+      RETURNING id, nickname, appearance`,
+        [userId, nickname, JSON.stringify(appearance)],
       );
       if (!rows[0]) return null;
-      return { id: Number(rows[0].id), nickname: rows[0].nickname, avatarId: rows[0].avatar_id };
+      return { id: Number(rows[0].id), nickname: rows[0].nickname, appearance: rows[0].appearance };
     });
   }
 

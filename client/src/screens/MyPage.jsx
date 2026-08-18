@@ -1,21 +1,27 @@
 /**
- * 마이페이지 — 내 프로필과 남은 기록을 한 화면에 모은다 (FR-A3, FR-A4).
+ * 마이페이지 — 내 캐릭터와 남은 기록을 한 화면에 모은다 (FR-A3, FR-A4).
  *
- * 홈의 전적 칸은 숫자 네 개짜리 요약이고, 여기는 그 숫자가 어디서 나왔는지
- * 볼 수 있는 곳이다: 최근 판, 주차별 랭킹, 연습 단계별 최고 기록.
+ * 홈의 전적 칸은 숫자 네 개짜리 요약이고, 여기는 그 숫자가 어디서 나왔는지 볼 수
+ * 있는 곳이다: 최근 판, 주차별 랭킹, 연습 단계별 최고 기록. 그리고 그 숫자가
+ * 파츠 해금으로 이어지는 곳이기도 하다.
  */
 
 import { useEffect, useState } from 'react';
 
 import {
-  AVATARS,
-  CATEGORY_LABEL,
-  MODE_LABEL,
-  PRACTICE_TIERS,
-  PRACTICE_TIER_ORDER,
-  avatarOf,
-} from '../constants.js';
+  AVATAR_PARTS,
+  AVATAR_SLOTS,
+  isUnlocked,
+  normalizeAppearance,
+  unlockLabel,
+  unlockRemaining,
+} from '../../../shared/avatar.js';
+import { Avatar } from '../avatar/Avatar.jsx';
+import { CATEGORY_LABEL, MODE_LABEL, PRACTICE_TIERS, PRACTICE_TIER_ORDER } from '../constants.js';
 import './MyPage.css';
+
+/** 파츠 전체 수 — 해금 진행률에 쓴다 */
+const TOTAL_PARTS = Object.values(AVATAR_PARTS).reduce((n, list) => n + list.length, 0);
 
 function seconds(ms) {
   return ms === null || ms === undefined ? '—' : `${(ms / 1000).toFixed(1)}초`;
@@ -28,6 +34,16 @@ function shortDate(iso) {
   return Number.isNaN(d.getTime()) ? '' : `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+function sameLook(a, b) {
+  return AVATAR_SLOTS.every(({ slot }) => a[slot] === b[slot]);
+}
+
+function countUnlocked(progress) {
+  return Object.values(AVATAR_PARTS)
+    .flat()
+    .filter((part) => isUnlocked(part, progress)).length;
+}
+
 function Stat({ label, value }) {
   return (
     <div className="mypage__stat">
@@ -37,10 +53,12 @@ function Stat({ label, value }) {
   );
 }
 
-/** 닉네임·아바타 편집 패널 */
-function ProfileEditor({ user, actions, onDone }) {
+/* ── 캐릭터 편집 ─────────────────────────────────────────────────────────── */
+
+function CharacterEditor({ user, progress, notice, actions, onDone }) {
   const [nickname, setNickname] = useState(user.nickname);
-  const [avatarId, setAvatarId] = useState(user.avatarId ?? 1);
+  const [draft, setDraft] = useState(() => normalizeAppearance(user.appearance));
+  const [slot, setSlot] = useState('base');
   const [saving, setSaving] = useState(false);
 
   // 서버가 저장을 확정하면(session.ready로 새 값이 내려오면) 편집을 닫는다.
@@ -48,18 +66,29 @@ function ProfileEditor({ user, actions, onDone }) {
   useEffect(() => {
     if (saving) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.nickname, user.avatarId]);
+  }, [user.nickname, user.appearance]);
+
+  // 거절당하면(잠긴 파츠 등) 저장 중 상태를 풀어 다시 시도할 수 있게 둔다
+  useEffect(() => {
+    setSaving(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notice?.seq]);
 
   const save = () => {
     const name = nickname.trim();
-    // 바뀐 게 없으면 서버가 새 값을 내려보낼 일도 없다 — 그냥 닫는다
-    if (name === user.nickname && avatarId === user.avatarId) return onDone();
+    if (name === user.nickname && sameLook(draft, normalizeAppearance(user.appearance))) {
+      return onDone(); // 바뀐 게 없으면 서버가 새 값을 내려보낼 일도 없다
+    }
     setSaving(true);
-    return actions.updateProfile({ nickname: name, avatarId });
+    return actions.updateProfile({ nickname: name, appearance: draft });
   };
 
   return (
     <div className="mypage__editor">
+      <div className="mypage__preview">
+        <Avatar appearance={draft} size={132} shape="square" />
+      </div>
+
       <input
         className="input"
         placeholder="닉네임"
@@ -68,19 +97,49 @@ function ProfileEditor({ user, actions, onDone }) {
         onChange={(e) => setNickname(e.target.value)}
       />
 
-      <div className="mypage__avatars">
-        {AVATARS.map((a) => (
+      <div className="mypage__tabs">
+        {AVATAR_SLOTS.map((tab) => (
           <button
-            key={a.id}
+            key={tab.slot}
             type="button"
-            className={`mypage__avatar ${a.id === avatarId ? 'is-picked' : ''}`}
-            aria-label={a.label}
-            onClick={() => setAvatarId(a.id)}
+            className={`mypage__tab ${slot === tab.slot ? 'is-on' : ''}`}
+            onClick={() => setSlot(tab.slot)}
           >
-            {a.emoji}
+            {tab.label}
           </button>
         ))}
       </div>
+
+      {/* 파츠마다 그 파츠만 바꾼 캐릭터를 그린다 — 이름만 봐서는 뭐가 바뀌는지 모른다 */}
+      <div className="mypage__parts">
+        {AVATAR_PARTS[slot].map((part) => {
+          const open = isUnlocked(part, progress);
+          return (
+            <button
+              key={part.id}
+              type="button"
+              className={`mypage__part ${draft[slot] === part.id ? 'is-picked' : ''} ${open ? '' : 'is-locked'}`}
+              disabled={!open}
+              onClick={() => setDraft((prev) => ({ ...prev, [slot]: part.id }))}
+            >
+              <Avatar appearance={{ ...draft, [slot]: part.id }} size={54} shape="square" />
+              <span className="mypage__part-name">{part.label}</span>
+              {!open && (
+                <>
+                  <span className="mypage__part-lock">
+                    {unlockLabel(part)}
+                    <br />
+                    {unlockRemaining(part, progress)} 남음
+                  </span>
+                  <span className="mypage__lock-badge" aria-hidden="true">🔒</span>
+                </>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {notice && <p className="mypage__notice">{notice.text}</p>}
 
       <div className="row">
         <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={onDone}>
@@ -100,11 +159,14 @@ function ProfileEditor({ user, actions, onDone }) {
   );
 }
 
-export function MyPage({ user, profile, actions, onClose }) {
+/* ── 마이페이지 ──────────────────────────────────────────────────────────── */
+
+export function MyPage({ user, profile, notice, actions, onClose }) {
   const [editing, setEditing] = useState(false);
 
   const stats = profile?.stats ?? user.stats;
   const rank = profile?.weeklyRank ?? user.weeklyRank;
+  const progress = profile?.progress ?? { roundWins: 0, games: 0, practiceStreak: 0 };
   const games = profile?.recentGames ?? [];
   const history = profile?.rankHistory ?? [];
   const records = profile?.practiceRecords ?? [];
@@ -127,24 +189,40 @@ export function MyPage({ user, profile, actions, onClose }) {
       </div>
 
       <div className="mypage__scroll">
-        {/* 프로필 */}
+        {/* 캐릭터 */}
         <section className="card">
-          <div className="row">
-            <span className="mypage__face">{avatarOf(user.avatarId).emoji}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
+          {!editing && (
+          <div className="mypage__profile">
+            <Avatar appearance={user.appearance} size={112} shape="square" />
+            <div className="mypage__profile-info">
               <strong className="mypage__nick">{user.nickname}</strong>
-              <div className="muted" style={{ fontSize: 12 }}>
+              <span className="muted">
                 {rank ? `이번 주 ${rank.rank}위 · ${rank.roundWins}승` : '이번 주 랭킹 미등재'}
-              </div>
-            </div>
-            {!editing && (
-              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setEditing(true)}>
-                수정
+              </span>
+              <span className="muted">
+                파츠 {countUnlocked(progress)}/{TOTAL_PARTS} 해금
+              </span>
+              <button
+                type="button"
+                className="btn btn--sage btn--sm"
+                style={{ marginTop: 8, alignSelf: 'flex-start' }}
+                onClick={() => setEditing(true)}
+              >
+                캐릭터 꾸미기
               </button>
-            )}
+            </div>
           </div>
+          )}
 
-          {editing && <ProfileEditor user={user} actions={actions} onDone={() => setEditing(false)} />}
+          {editing && (
+            <CharacterEditor
+              user={user}
+              progress={progress}
+              notice={notice}
+              actions={actions}
+              onDone={() => setEditing(false)}
+            />
+          )}
         </section>
 
         {/* 전적 요약 */}

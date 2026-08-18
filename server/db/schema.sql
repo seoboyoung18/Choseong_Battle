@@ -42,11 +42,12 @@ CREATE TABLE users (
   id            bigserial PRIMARY KEY,
   toss_user_id  text        NOT NULL UNIQUE,
   nickname      text        NOT NULL,
-  avatar_id     smallint    NOT NULL DEFAULT 1,
+  appearance    jsonb       NOT NULL DEFAULT '{"base":"RABBIT","hanbok":"INDIGO","head":"NONE","face":"SMILE","bg":"SAND"}'::jsonb,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
 COMMENT ON TABLE users IS '토스 계정 연동 유저. 개인정보는 닉네임만 보유(최소 수집)';
+COMMENT ON COLUMN users.appearance IS '캐릭터 파츠 조합. 값의 의미는 shared/avatar.js가 정의하고 서버가 해금 여부까지 검사한다';
 
 -- ── 방 ──────────────────────────────────────────────────────────────────────
 -- 친구 방과 빠른 매칭 임시 방이 같은 테이블을 쓴다.

@@ -5,7 +5,7 @@
  * 동기부여가 되지 않는다.
  */
 
-import { avatarOf } from '../constants.js';
+import { Avatar } from '../avatar/Avatar.jsx';
 import './Ranking.css';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -18,7 +18,8 @@ function Row({ entry, isMe }) {
   return (
     <li className={`rank__row ${isMe ? 'is-me' : ''}`}>
       <span className="rank__no">{MEDAL[entry.rank - 1] ?? entry.rank}</span>
-      <span className="rank__nick">{avatarOf(entry.avatarId).emoji} {entry.nickname}</span>
+      <Avatar appearance={entry.appearance} size={26} />
+      <span className="rank__nick">{entry.nickname}</span>
       <span className="rank__speed muted">{seconds(entry.avgAnswerMs)}</span>
       <strong className="rank__wins">{entry.roundWins}승</strong>
     </li>

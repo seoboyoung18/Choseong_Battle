@@ -6,6 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { DEFAULT_APPEARANCE } from '../../shared/avatar.js';
 import { PostgresStore } from '../src/db/store.js';
 import { pool, query } from '../src/db/pool.js';
 
@@ -261,18 +262,67 @@ test('기록에 실패해도 예외를 던지지 않는다', async (t) => {
   );
 });
 
-test('프로필을 바꾸면 이름과 아바타가 함께 남는다', async (t) => {
+test('프로필을 바꾸면 이름과 캐릭터가 함께 남는다', async (t) => {
   if (!available) return t.skip('DB 없음');
 
   const me = await makeUser('바꾸기전');
-  const updated = await store.updateProfile({ userId: me.id, nickname: '바꾼뒤', avatarId: 4 });
+  const look = { base: 'CAT', hanbok: 'SAGE', head: 'FLOWER', face: 'WINK', bg: 'MINT' };
+  const updated = await store.updateProfile({ userId: me.id, nickname: '바꾼뒤', appearance: look });
 
   assert.equal(updated.nickname, '바꾼뒤');
-  assert.equal(updated.avatarId, 4);
+  assert.deepEqual(updated.appearance, look);
 
-  const { rows } = await query(`SELECT nickname, avatar_id FROM users WHERE id = $1`, [me.id]);
+  const { rows } = await query(`SELECT nickname, appearance FROM users WHERE id = $1`, [me.id]);
   assert.equal(rows[0].nickname, '바꾼뒤');
-  assert.equal(rows[0].avatar_id, 4);
+  assert.deepEqual(rows[0].appearance, look);
+});
+
+test('새 계정은 기본 캐릭터를 입고 나온다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const me = await makeUser('새내기');
+  assert.deepEqual(me.appearance, DEFAULT_APPEARANCE);
+});
+
+test('다시 접속해도 저장한 캐릭터가 따라온다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  // 접속 때 클라이언트가 캐릭터를 보내지 않으므로, upsert가 덮어쓰면 안 된다
+  const tossId = `test-${process.pid}-relogin`;
+  const first = await store.upsertUser({ tossUserId: tossId, nickname: '재접속' });
+  createdUsers.push(first.id);
+
+  const look = { base: 'BEAR', hanbok: 'PLUM', head: 'BEADS', face: 'PROUD', bg: 'PEACH' };
+  await store.updateProfile({ userId: first.id, nickname: '재접속', appearance: look });
+
+  const again = await store.upsertUser({ tossUserId: tossId, nickname: '재접속' });
+  assert.deepEqual(again.appearance, look, '재접속이 캐릭터를 기본값으로 되돌렸다');
+});
+
+test('해금 진행도는 라운드 승·판 수·연습 최고 연속을 함께 센다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const me = await makeUser('진행도');
+
+  // 아무것도 안 한 계정은 전부 0이다 (해금 파츠가 열리면 안 된다)
+  assert.deepEqual(await store.getUnlockProgress(me.id), {
+    roundWins: 0, games: 0, practiceStreak: 0,
+  });
+
+  for (const wins of [4, 9]) {
+    const gameId = `g-${process.pid}-${++seq}`;
+    await store.createGame({ gameId, category: 'ALL', totalRounds: 10, players: [{ userId: me.id }] });
+    await store.endGame({
+      gameId,
+      ranks: [{ userId: me.id, roundWins: wins, avgAnswerMs: 3000, rank: 1, leftEarly: false }],
+    });
+  }
+  await store.savePracticeRecord({ userId: me.id, tier: 'T8S', category: 'CHO', streak: 6 });
+  await store.savePracticeRecord({ userId: me.id, tier: 'FREE', category: 'ALL', streak: 11 });
+
+  assert.deepEqual(await store.getUnlockProgress(me.id), {
+    roundWins: 13, games: 2, practiceStreak: 11,
+  });
 });
 
 test('최근 전적은 끝난 판만 최신 순으로 준다', async (t) => {

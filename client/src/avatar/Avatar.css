@@ -1,0 +1,18 @@
+/* 캐릭터 액자. 배경색은 파츠라서 인라인 스타일로 들어온다 */
+.avatar {
+  display: inline-block;
+  flex: none;
+  overflow: hidden;
+  line-height: 0;
+  border: 1px solid var(--sand-border);
+}
+
+/* 작은 자리(홈 헤더·대기방·스코어보드·랭킹)는 동그라미 */
+.avatar--circle {
+  border-radius: 50%;
+}
+
+/* 마이페이지처럼 크게 보여주는 자리는 사각형 — 한복 자락까지 잘리지 않고 보인다 */
+.avatar--square {
+  border-radius: var(--radius);
+}
