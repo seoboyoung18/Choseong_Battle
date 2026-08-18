@@ -134,9 +134,19 @@ export function Lobby({ user, onSignIn, actions, matching, connected, connecting
         </div>
       </section>
 
-      <button type="button" className="btn" onClick={() => actions.joinMatching(category, size)}>
-        빠른 대전
-      </button>
+      <div className="row">
+        <button
+          type="button"
+          className="btn"
+          style={{ flex: 2 }}
+          onClick={() => actions.joinMatching(category, size)}
+        >
+          빠른 대전
+        </button>
+        <button type="button" className="btn btn--sage" style={{ flex: 1 }} onClick={actions.openPractice}>
+          혼자 연습
+        </button>
+      </div>
 
       <section className="card">
         <strong>친구 방</strong>

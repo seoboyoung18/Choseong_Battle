@@ -25,6 +25,8 @@ const initialState = {
   connected: false,
   ranking: null, // 주간 랭킹 { week, top, me, minGames }
   showRanking: false,
+  showPractice: false,
+  practice: { question: null, streak: 0, result: null, records: null, notice: null },
 };
 
 export function useGame() {
@@ -111,6 +113,27 @@ export function useGame() {
     });
 
     socket.on('error.notice', ({ message }) => patch({ notice: { text: message, seq: Date.now() } }));
+
+    // ── 혼자 연습 ─────────────────────────────────────────────────────────
+    const patchPractice = (next) =>
+      setState((prev) => ({ ...prev, practice: { ...prev.practice, ...next } }));
+
+    socket.on('practice.records', ({ records }) => patchPractice({ records }));
+
+    socket.on('practice.question', (question) =>
+      patchPractice({ question, streak: question.streak, result: null, notice: null }),
+    );
+
+    socket.on('practice.correct', ({ word, streak }) =>
+      patchPractice({ streak, notice: { text: `${word} 정답!`, seq: Date.now() } }),
+    );
+
+    socket.on('practice.rejected', ({ reason }) => {
+      const text = REJECT_MESSAGE[reason];
+      if (text) patchPractice({ notice: { text, seq: Date.now(), shake: true } });
+    });
+
+    socket.on('practice.ended', (result) => patchPractice({ result, question: null }));
   }, [patch]);
 
   useEffect(() => () => socketRef.current?.close(), []);
@@ -146,6 +169,37 @@ export function useGame() {
       emit('ranking.weekly');
     },
     closeRanking: () => patch({ showRanking: false }),
+
+    openPractice: () => {
+      patch({ showPractice: true });
+      emit('practice.records');
+    },
+    closePractice: () => {
+      emit('practice.quit');
+      setState((prev) => ({
+        ...prev,
+        showPractice: false,
+        practice: { ...prev.practice, question: null, result: null, streak: 0, notice: null },
+      }));
+    },
+    practiceStart: ({ tier, category }) => {
+      setState((prev) => ({
+        ...prev,
+        practice: { ...prev.practice, result: null, streak: 0, notice: null },
+      }));
+      emit('practice.start', { tier, category });
+    },
+    practiceSubmit: (word) => emit('practice.submit', { word }),
+    practicePass: () => emit('practice.pass'),
+    practiceQuit: () => emit('practice.quit'),
+    /** 결과 화면에서 단계 선택으로 돌아간다 */
+    practiceReset: () => {
+      emit('practice.records');
+      setState((prev) => ({
+        ...prev,
+        practice: { ...prev.practice, question: null, result: null, streak: 0, notice: null },
+      }));
+    },
   };
 
   return { state, signIn, actions, socket: socketRef };

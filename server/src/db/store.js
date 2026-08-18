@@ -324,6 +324,56 @@ export class PostgresStore {
   }
 
   /**
+   * 혼자 연습 기록을 남긴다. 최고 기록만 갱신한다 (FR-P3).
+   *
+   * @param {object} params
+   * @param {number} params.userId
+   * @param {string} params.tier
+   * @param {string} params.category
+   * @param {number} params.streak 이번 도전의 연속 정답 수
+   * @returns {Promise<{ bestStreak: number, isNewRecord: boolean } | null>}
+   */
+  async savePracticeRecord({ userId, tier, category, streak }) {
+    return this.#safe('연습 기록 저장', async () => {
+      const { rows } = await this.db.query(
+        `INSERT INTO practice_records (user_id, tier, category, best_streak)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (user_id, tier, category) DO UPDATE
+           SET best_streak = GREATEST(practice_records.best_streak, EXCLUDED.best_streak),
+               updated_at  = now()
+         RETURNING best_streak,
+                   (xmax = 0 OR best_streak = $4) AS is_new_record`,
+        [userId, tier, category, streak],
+      );
+      return {
+        bestStreak: rows[0].best_streak,
+        // 기존 기록과 같은 값이면 경신이 아니다 (0연승을 기록이라 부르지 않는다)
+        isNewRecord: rows[0].is_new_record && streak > 0,
+      };
+    });
+  }
+
+  /**
+   * 단계·카테고리별 최고 기록 전체.
+   * @param {number} userId
+   * @returns {Promise<Array<{ tier: string, category: string, bestStreak: number }>>}
+   */
+  async getPracticeRecords(userId) {
+    const rows = await this.#safe('연습 기록 조회', async () => {
+      const result = await this.db.query(
+        `SELECT tier, category, best_streak FROM practice_records WHERE user_id = $1`,
+        [userId],
+      );
+      return result.rows;
+    });
+    return (rows ?? []).map((r) => ({
+      tier: r.tier,
+      category: r.category,
+      bestStreak: r.best_streak,
+    }));
+  }
+
+  /**
    * 홈 화면에 띄울 전적. 게임이 끝날 때마다 집계하지 않고 필요할 때 센다.
    * @param {number} userId
    */

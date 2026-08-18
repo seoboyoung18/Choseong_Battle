@@ -10,9 +10,10 @@ import { createServer } from 'node:http';
 import express from 'express';
 import { Server } from 'socket.io';
 
-import { RULES, config } from './config.js';
+import { PRACTICE_TIERS, RULES, config } from './config.js';
 import { pool, query } from './db/pool.js';
 import { PostgresStore } from './db/store.js';
+import { PracticeSession } from './game/practice.js';
 import { RoomManager } from './game/rooms.js';
 import { Matchmaker, isValidCategory, isValidSize } from './matching/queue.js';
 import { isValidWeek } from './ranking/week.js';
@@ -208,6 +209,54 @@ gameNsp.on('connection', (socket) => {
     gameNsp.to(room.id).emit('reaction.broadcast', { userId: user.userId, emoji });
   });
 
+  // ── 혼자 연습 ──────────────────────────────────────────────────────────────
+
+  /** @type {PracticeSession | null} 소켓 하나당 한 세션 */
+  let practice = null;
+
+  /** 도전이 끝나면 기록을 남기고 결과를 덧붙여 보낸다 */
+  const finishPractice = async (payload) => {
+    const saved = await store.savePracticeRecord({
+      userId: user.userId,
+      tier: payload.tier,
+      category: payload.category,
+      streak: payload.streak,
+    });
+    socket.emit('practice.ended', { ...payload, ...(saved ?? {}) });
+    practice = null;
+  };
+
+  socket.on('practice.start', ({ category, tier } = {}) => {
+    if (!isValidCategory(category)) return fail('INVALID_PARAM', '알 수 없는 카테고리예요');
+    if (!PRACTICE_TIERS[tier]) return fail('INVALID_PARAM', '알 수 없는 단계예요');
+    if (rooms.roomOf(userId)) return fail('ALREADY_IN_ROOM', '방에서 나온 뒤에 해주세요');
+
+    practice?.dispose();
+    practice = new PracticeSession({
+      userId: user.userId,
+      category,
+      tier,
+      dictionary,
+      emit: (event, payload) => {
+        // 종료만 가로채 기록을 남긴다. 나머지는 그대로 흘려보낸다.
+        if (event === 'practice.ended') {
+          finishPractice(payload).catch((err) => console.error('[practice] 기록 실패', err));
+          return;
+        }
+        socket.emit(event, payload);
+      },
+    });
+    practice.start();
+  });
+
+  socket.on('practice.submit', ({ word } = {}) => practice?.submit(word));
+  socket.on('practice.pass', () => practice?.pass());
+  socket.on('practice.quit', () => practice?.quit());
+
+  socket.on('practice.records', async () => {
+    socket.emit('practice.records', { records: await store.getPracticeRecords(user.userId) });
+  });
+
   // ── 랭킹 · 전적 ────────────────────────────────────────────────────────────
 
   // API 명세는 REST(GET /rankings/weekly)로 잡혀 있지만, 아직 REST를 지킬
@@ -239,6 +288,11 @@ gameNsp.on('connection', (socket) => {
   });
 
   socket.on('disconnect', async () => {
+    // 연결이 끊기면 진행 중인 도전은 기록 없이 버린다 — 끊김을 기록 수단으로
+    // 쓸 수 있으면 안 되고, 반대로 끊겼다고 벌을 줄 이유도 없다
+    practice?.dispose();
+    practice = null;
+
     await matchmaker.cancel(userId).catch(() => {});
     await clearPresence(redis, userId).catch(() => {});
 

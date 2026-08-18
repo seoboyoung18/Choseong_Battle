@@ -74,3 +74,21 @@ export const RULES = Object.freeze({
   /** 한 게임 안에서 재출제를 막을 최근 단어 수 */
   RECENT_WORDS_LIMIT: 200,
 });
+
+/**
+ * 혼자 연습 5단계 (FR-P1).
+ *
+ * 자유는 제한시간이 없고 패스할 수 있으며 끝나지 않는다. 나머지는 연속 도전이라
+ * 한 번 실패하면 그 자리에서 끝난다.
+ *
+ * 키는 DB practice_tier enum과 같아야 한다.
+ */
+export const PRACTICE_TIERS = Object.freeze({
+  FREE: { label: '자유', limitMs: null, canPass: true },
+  T12S: { label: '초보', limitMs: 12_000, canPass: false },
+  T8S: { label: '중수', limitMs: 8_000, canPass: false },
+  T5S: { label: '고수', limitMs: 5_000, canPass: false },
+  T3S: { label: '초고수', limitMs: 3_000, canPass: false },
+});
+
+export const PRACTICE_TIER_ORDER = Object.freeze(['FREE', 'T12S', 'T8S', 'T5S', 'T3S']);

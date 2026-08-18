@@ -1,0 +1,55 @@
+.practice__tiers {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.practice__tier {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: 0 3px 0 var(--sand-border);
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+
+.practice__tier:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sand-border);
+}
+
+.practice__tier-name {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.practice__best {
+  font-size: 14px;
+  color: var(--terracotta);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.practice__streak {
+  font-family: var(--font-title), var(--font-ui);
+  font-size: 20px;
+  color: var(--sage-dark);
+}
+
+.practice__result-streak {
+  font-family: var(--font-title), var(--font-ui);
+  font-size: 48px;
+  line-height: 1.1;
+}
