@@ -154,6 +154,12 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
         >
           {saving ? '저장 중…' : '저장'}
         </button>
+        {/* 사전 출처 표기 — CC BY-SA 2.0 KR의 저작자 표시 의무 (NFR-7) */}
+        <p className="mypage__credit muted">
+          낱말 출처: 국립국어원 한국어기초사전
+          <br />
+          CC BY-SA 2.0 KR
+        </p>
       </div>
     </div>
   );

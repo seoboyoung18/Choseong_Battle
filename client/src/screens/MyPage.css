@@ -223,3 +223,11 @@
   font-size: 13px;
   color: var(--terracotta);
 }
+
+/* 사전 출처 — 화면 맨 아래에 조용히 */
+.mypage__credit {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.5;
+}

@@ -21,3 +21,6 @@ Thumbs.db
 
 # 대용량 원본 에셋 (정규화 결과만 커밋)
 assets_raw/
+
+# 사전 원본 (한국어기초사전 XML) — 재현 가능한 다운로드라 커밋하지 않는다
+server/db/krdict/

@@ -11,7 +11,7 @@
 
 import { io } from 'socket.io-client';
 
-import { ALL_WORDS } from '../db/seed-words.js';
+import { pool } from '../src/db/pool.js';
 import { RULES } from '../src/config.js';
 import { matchHint } from '../src/judge/hint.js';
 
@@ -23,8 +23,14 @@ const check = (label, ok) => {
   if (!ok) failures += 1;
 };
 
-/** 힌트에 맞는 단어를 사전에서 찾는다 — 플레이어가 머리로 하는 일 */
-const solve = (hint) => ALL_WORDS.find((w) => matchHint(w, hint).ok) ?? null;
+/**
+ * 힌트에 맞는 단어를 사전에서 찾는다 — 플레이어가 머리로 하는 일.
+ *
+ * 후보는 파일이 아니라 DB에서 읽는다. 서버는 words 테이블에서 출제하므로
+ * 시드 파일만 보면 임포트한 단어가 나올 때마다 답을 못 찾는다.
+ */
+let WORDS = [];
+const solve = (hint) => WORDS.find((w) => matchHint(w, hint).ok) ?? null;
 
 /**
  * 접속한다. 게임 안에서 쓰는 userId는 서버가 정하므로(users 테이블의 id),
@@ -54,6 +60,10 @@ const waitFor = (socket, event, timeoutMs = 8000) =>
 
 async function main() {
   console.log(`[smoke] ${URL} 접속`);
+  const { rows } = await pool.query(`SELECT text FROM words WHERE is_curated AND status = 'ACTIVE'`);
+  WORDS = rows.map((r) => r.text);
+  check(`출제 풀 적재 (${WORDS.length}개)`, WORDS.length > 0);
+
   const host = await connect('smoke-host', '호스트감자');
   const guest = await connect('smoke-guest', '게스트과자');
   check('소켓 2개 접속', host.connected && guest.connected);
