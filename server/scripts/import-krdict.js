@@ -24,10 +24,10 @@
  *   출제 등급 초급·중급만 문제로 낸다. 고급·미지정은 판정용으로만 인정한다 —
  *             힌트만 보고 '첩첩산중'을 떠올릴 사람은 없다.
  *   낮춤말    뜻풀이에 '낮잡아 이르는 말' 표시가 붙으면 출제 풀에서 뺀다.
- *             판정에서는 인정한다 — db/../words/blocklist.js 참고.
+ *             판정에서는 인정한다 — 사전에 있는 말을 "없는 단어"라고 하면 안 된다.
  *
- * 마지막에 차단 목록(BANNED)을 적용한다. 사전은 말을 판단하지 않고 싣지만
- * 게임 화면에는 띄울 수 없는 낱말이 있다.
+ * 마지막에 부적절어 목록을 적용한다 (src/words/blocklist.js). 대부분은 출제만
+ * 막고 판정은 인정하며, 완전 차단은 노골적 욕설에만 쓴다.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -212,8 +212,9 @@ async function main() {
   process.stdout.write('\n');
 
   const lowered = await uncurate(derogatory);
-  const { banned } = await applyBlocklist(pool);
-  console.log(`[import] 낮춤말 ${lowered}개를 출제 풀에서 내림 · 차단 목록 ${banned}개를 BANNED로`);
+  const { banned, unserved, restored } = await applyBlocklist(pool);
+  console.log(`[import] 출제에서 내림 — 낮춤말 ${lowered}개 · 목록 ${unserved}개`);
+  console.log(`[import] 완전 차단 ${banned}개 · 기준에서 빠져 되살림 ${restored}개`);
 
   const { rows: [total] } = await pool.query(
     `SELECT count(*) AS judge,

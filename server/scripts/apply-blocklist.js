@@ -11,7 +11,7 @@ import { pool } from '../src/db/pool.js';
 import { applyBlocklist } from '../src/words/blocklist.js';
 
 async function main() {
-  const { banned } = await applyBlocklist(pool);
+  const { banned, unserved, restored } = await applyBlocklist(pool);
 
   const { rows: [total] } = await pool.query(
     `SELECT count(*) FILTER (WHERE status = 'BANNED') AS banned,
@@ -20,7 +20,9 @@ async function main() {
        FROM words`,
   );
 
-  console.log(`[block] 이번에 막은 단어 ${banned}개`);
+  console.log(
+    `[block] 이번에 — 완전 차단 ${banned}개 · 출제 금지 ${unserved}개 · 되살림 ${restored}개`,
+  );
   console.log(
     `[block] 차단 ${total.banned}개 · 판정용 ${Number(total.active).toLocaleString()}개 · 출제용 ${Number(total.curated).toLocaleString()}개`,
   );
