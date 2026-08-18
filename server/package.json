@@ -15,7 +15,8 @@
     "db:seed": "node scripts/seed-words.js",
     "rank:refresh": "node scripts/refresh-ranking.js",
     "db:import": "node scripts/import-krdict.js",
-    "db:block": "node scripts/apply-blocklist.js"
+    "db:block": "node scripts/apply-blocklist.js",
+    "db:import:open": "node scripts/import-opendict.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
