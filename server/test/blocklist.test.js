@@ -51,8 +51,14 @@ test('목록 안에도, 목록끼리도 겹치지 않는다', () => {
 test('완전 차단은 노골적 욕설에만 쓴다', () => {
   // 판정에서 인정하면 그 낱말이 정답 바에 실려 방 전체에 뜬다. 그 통로를 막는
   // 게 전부이므로, 목록이 길어졌다면 기준이 흐트러진 것이다.
-  assert.ok(BLOCKED.length <= 40, `완전 차단이 ${BLOCKED.length}개로 늘었다 — 기준을 다시 볼 것`);
+  assert.ok(BLOCKED.length <= 60, `완전 차단이 ${BLOCKED.length}개로 늘었다 — 기준을 다시 볼 것`);
   for (const word of ['병신', '씨발', '개새끼']) {
+    assert.ok(BLOCKED.includes(word), `'${word}'가 완전 차단에 없다`);
+  }
+
+  // 우리말샘이 들어오면서 실제로 사전에 존재하게 된 혐오·차별어.
+  // 걸레·새끼와 달리 중립적인 뜻이 따로 없어 정답 바에 뜨면 그냥 혐오 표현이다.
+  for (const word of ['짱깨', '깜둥이', '문둥이', '절름발이', '창녀']) {
     assert.ok(BLOCKED.includes(word), `'${word}'가 완전 차단에 없다`);
   }
 });
@@ -68,7 +74,8 @@ test('평범한 뜻이 있는 낱말은 판정에서 막지 않는다', () => {
 
 test('무거운 주제는 출제만 막고 판정은 인정한다', () => {
   // 자살도 마약도 뉴스와 교과서에 나오는 낱말이다. 문제로 내지 않을 뿐이다.
-  for (const word of ['자살', '마약', '살인', '강간', '도박']) {
+  // 등신·머저리처럼 비하 강도가 낮은 말도 여기 남는다 — 선을 넓히면 끝이 없다.
+  for (const word of ['자살', '마약', '살인', '강간', '도박', '등신', '머저리']) {
     assert.ok(NOT_SERVED.includes(word), `'${word}'가 출제 금지 목록에 없다`);
     assert.equal(BLOCKED.includes(word), false, `'${word}'를 판정에서까지 막고 있다`);
   }
