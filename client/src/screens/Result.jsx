@@ -1,10 +1,11 @@
 /** 결과 — 최종 스코어와 순위. */
 
+import { UnlockBanner } from '../avatar/UnlockBanner.jsx';
 import { CATEGORY_LABEL } from '../constants.js';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
-export function Result({ result, user, actions }) {
+export function Result({ result, user, unlocked, actions }) {
   const { ranks, summary } = result;
 
   return (
@@ -16,6 +17,8 @@ export function Result({ result, user, actions }) {
       <p className="muted" style={{ textAlign: 'center', margin: 0 }}>
         {CATEGORY_LABEL[summary?.category] ?? summary?.category} · {summary?.totalRounds}라운드
       </p>
+
+      <UnlockBanner parts={unlocked} appearance={user.appearance} />
 
       <section className="card" style={{ flex: 1 }}>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>

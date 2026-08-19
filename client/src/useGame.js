@@ -25,6 +25,7 @@ const initialState = {
   connected: false,
   ranking: null, // 주간 랭킹 { week, top, me, minGames }
   showRanking: false,
+  unlocked: [], // 이번 판으로 새로 열린 파츠 [{ slot, id, label }]
   profile: null, // 마이페이지 { recentGames, rankHistory, practiceRecords, ... }
   showMyPage: false,
   showPractice: false,
@@ -50,6 +51,7 @@ export function useGame() {
     socket.on('session.ready', (me) => patch({ me }));
     socket.on('ranking.weekly', (ranking) => patch({ ranking }));
     socket.on('me.profile', (profile) => patch({ profile }));
+    socket.on('unlock.new', ({ parts }) => patch({ unlocked: parts ?? [] }));
 
     socket.on('room.state', (room) => {
       setState((prev) => ({
@@ -72,6 +74,8 @@ export function useGame() {
         phase: 'PLAYING',
         round,
         pass: null,
+        // 지난 판의 해금 알림이 다음 판까지 따라오면 안 된다
+        unlocked: [],
         suddenDeath: Boolean(round.suddenDeath),
         result: null,
       }));
@@ -166,7 +170,8 @@ export function useGame() {
       patch({ matching: false });
       emit('matching.cancel');
     },
-    backToRoom: () => patch({ phase: 'ROOM', result: null, scores: {}, lastWin: null }),
+    backToRoom: () =>
+      patch({ phase: 'ROOM', result: null, scores: {}, lastWin: null, unlocked: [] }),
     openRanking: () => {
       patch({ showRanking: true });
       emit('ranking.weekly');

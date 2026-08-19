@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import express from 'express';
 import { Server } from 'socket.io';
 
-import { validateAppearance } from '../../shared/avatar.js';
+import { newlyUnlocked, validateAppearance } from '../../shared/avatar.js';
 import { PRACTICE_TIERS, RULES, config } from './config.js';
 import { pool, query } from './db/pool.js';
 import { PostgresStore } from './db/store.js';
@@ -215,15 +215,28 @@ gameNsp.on('connection', (socket) => {
   /** @type {PracticeSession | null} 소켓 하나당 한 세션 */
   let practice = null;
 
-  /** 도전이 끝나면 기록을 남기고 결과를 덧붙여 보낸다 */
+  /**
+   * 도전이 끝나면 기록을 남기고 결과를 덧붙여 보낸다.
+   *
+   * 연습 최고 연속으로 열리는 파츠가 있어서(새침·까치) 기록 전후의 진행도를
+   * 비교한다. 게임 쪽과 달리 빼서 되돌릴 수가 없다 — 최고 기록은 누적이 아니라
+   * 갱신이라 "이번 몫"이라는 게 없다. 그래서 저장 전에 한 번 읽는다.
+   */
   const finishPractice = async (payload) => {
+    const before = await store.getUnlockProgress(user.userId);
     const saved = await store.savePracticeRecord({
       userId: user.userId,
       tier: payload.tier,
       category: payload.category,
       streak: payload.streak,
     });
-    socket.emit('practice.ended', { ...payload, ...(saved ?? {}) });
+    const after = await store.getUnlockProgress(user.userId);
+
+    socket.emit('practice.ended', {
+      ...payload,
+      ...(saved ?? {}),
+      unlocked: newlyUnlocked(before, after),
+    });
     practice = null;
   };
 

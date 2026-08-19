@@ -89,11 +89,20 @@ export default function App() {
   }
 
   if (state.showPractice) {
-    return <Practice practice={state.practice} actions={actions} onClose={actions.closePractice} />;
+    return (
+      <Practice
+        practice={state.practice}
+        user={user}
+        actions={actions}
+        onClose={actions.closePractice}
+      />
+    );
   }
 
   if (state.phase === 'RESULT' && state.result) {
-    return <Result result={state.result} user={user} actions={actions} />;
+    return (
+      <Result result={state.result} user={user} unlocked={state.unlocked} actions={actions} />
+    );
   }
 
   if (state.phase === 'PLAYING') {

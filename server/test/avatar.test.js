@@ -11,6 +11,7 @@ import {
   DEFAULT_APPEARANCE,
   findPart,
   isUnlocked,
+  newlyUnlocked,
   normalizeAppearance,
   unlockLabel,
   unlockRemaining,
@@ -105,4 +106,41 @@ test('알 수 없는 칸은 무시한다 — 저장 대상은 정해진 다섯 �
   const result = validateAppearance({ base: 'BEAR', wings: 'DRAGON' }, NOTHING);
   assert.equal(result.ok, true);
   assert.equal(result.appearance.wings, undefined);
+});
+
+test('이번에 넘어선 파츠만 새로 열린 것으로 센다', () => {
+  const before = { roundWins: 19, games: 4, practiceStreak: 0 };
+  const after = { roundWins: 21, games: 5, practiceStreak: 0 };
+
+  const opened = newlyUnlocked(before, after).map((p) => p.id);
+  assert.deepEqual(opened.sort(), ['FOX', 'JOKDURI'], '20승·5판을 이번에 넘었다');
+});
+
+test('이미 열려 있던 파츠는 다시 알리지 않는다', () => {
+  // 여기가 새면 판이 끝날 때마다 같은 해금 알림이 반복된다
+  const before = { roundWins: 25, games: 6, practiceStreak: 0 };
+  const after = { roundWins: 28, games: 7, practiceStreak: 0 };
+  assert.deepEqual(newlyUnlocked(before, after), []);
+});
+
+test('진행도가 그대로면 아무것도 열리지 않는다', () => {
+  // 기록 저장이 실패하면 before와 after가 같아진다 — 조용히 넘어가야 한다
+  const same = { roundWins: 19, games: 4, practiceStreak: 7 };
+  assert.deepEqual(newlyUnlocked(same, same), []);
+});
+
+test('연습 기록으로도 열린다', () => {
+  const opened = newlyUnlocked(
+    { roundWins: 0, games: 0, practiceStreak: 7 },
+    { roundWins: 0, games: 0, practiceStreak: 12 },
+  ).map((p) => p.id);
+  assert.deepEqual(opened.sort(), ['COOL', 'MAGPIE']);
+});
+
+test('새로 열린 파츠는 어느 칸인지 함께 알려준다', () => {
+  // 화면이 "지금 내 캐릭터에 이 파츠만 얹은 모습"을 그리려면 slot이 있어야 한다
+  const [part] = newlyUnlocked({ roundWins: 19 }, { roundWins: 20 });
+  assert.equal(part.slot, 'base');
+  assert.equal(part.id, 'FOX');
+  assert.equal(part.label, '여우');
 });

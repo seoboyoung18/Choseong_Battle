@@ -1,0 +1,59 @@
+/* 해금 알림 — 결과 화면에서 눈에 띄어야 하므로 머스타드 테두리를 두른다 */
+.unlock {
+  border-color: var(--mustard);
+  background: var(--card);
+  animation: unlock-pop 0.32s ease-out;
+}
+
+@keyframes unlock-pop {
+  from {
+    transform: scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 애니메이션을 끄는 설정을 존중한다 */
+@media (prefers-reduced-motion: reduce) {
+  .unlock {
+    animation: none;
+  }
+}
+
+.unlock__title {
+  display: block;
+  text-align: center;
+  font-size: 15px;
+}
+
+/* 한 줄에 넘치면 옆으로 굴린다 — 한 번에 여러 개가 열릴 수 있다 */
+.unlock__list {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.unlock__item {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.unlock__name {
+  font-size: 12px;
+  color: var(--ink-sub);
+  white-space: nowrap;
+}
+
+.unlock__hint {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 12px;
+}

@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { UnlockBanner } from '../avatar/UnlockBanner.jsx';
 import { Hint } from '../components/Hint.jsx';
 import { Keyboard } from '../components/Keyboard.jsx';
 import { CATEGORY_LABEL, CATEGORY_ORDER, PRACTICE_TIERS, PRACTICE_TIER_ORDER } from '../constants.js';
@@ -179,7 +180,7 @@ function Run({ state, actions }) {
 }
 
 /** 도전 결과 */
-function Ended({ result, actions, onClose }) {
+function Ended({ result, user, actions, onClose }) {
   const reasonText = {
     TIMEOUT: '시간 초과!',
     WRONG: '아쉬워요',
@@ -207,6 +208,8 @@ function Ended({ result, actions, onClose }) {
         )}
       </div>
 
+      <UnlockBanner parts={result.unlocked} appearance={user?.appearance} />
+
       <div className="spacer" />
       <button
         type="button"
@@ -222,9 +225,11 @@ function Ended({ result, actions, onClose }) {
   );
 }
 
-export function Practice({ practice, actions, onClose }) {
+export function Practice({ practice, user, actions, onClose }) {
   if (practice.result) {
-    return <Ended result={practice.result} actions={actions} onClose={actions.practiceReset} />;
+    return (
+      <Ended result={practice.result} user={user} actions={actions} onClose={actions.practiceReset} />
+    );
   }
   if (practice.question) {
     return <Run state={practice} actions={actions} />;

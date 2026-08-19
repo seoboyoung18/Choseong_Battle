@@ -168,6 +168,24 @@ export function unlockRemaining(part, progress = {}) {
 }
 
 /**
+ * 이번에 새로 열린 파츠.
+ *
+ * 해금은 기록에서 계산되므로 "언제 열렸는지"를 저장하는 곳이 없다. 그래서 판이
+ * 끝나기 전후의 진행도를 비교해 그 순간 넘어선 파츠를 찾는다.
+ *
+ * @param {{ roundWins?: number, games?: number, practiceStreak?: number }} before
+ * @param {{ roundWins?: number, games?: number, practiceStreak?: number }} after
+ * @returns {Array<{ slot: string, id: string, label: string }>}
+ */
+export function newlyUnlocked(before, after) {
+  return AVATAR_SLOTS.flatMap(({ slot }) =>
+    AVATAR_PARTS[slot]
+      .filter((part) => part.unlock && !isUnlocked(part, before) && isUnlocked(part, after))
+      .map((part) => ({ slot, id: part.id, label: part.label })),
+  );
+}
+
+/**
  * 남의 캐릭터를 그릴 때 쓴다 — 없는 id는 기본값으로 떨어뜨리기만 하고 해금은
  * 따지지 않는다. 남이 무엇을 열었는지는 이쪽에서 알 수 없다.
  * @param {object | null | undefined} input

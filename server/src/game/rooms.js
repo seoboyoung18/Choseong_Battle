@@ -6,6 +6,7 @@
  * 위로 올라가야 한다 (NFR-3).
  */
 
+import { newlyUnlocked } from '../../../shared/avatar.js';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 
 import { RULES } from '../config.js';
@@ -317,7 +318,13 @@ export class RoomManager {
       emit: {
         toRoom: (event, payload) => {
           this.io.to(room.id).emit(event, payload);
-          if (event === 'game.ended') this.#onGameEnded(room);
+          if (event === 'game.ended') {
+            this.#onGameEnded(room);
+            // 기록은 이미 커밋됐다(#endGame이 store.endGame을 await한 뒤 emit한다)
+            this.#announceUnlocks(room, payload.ranks).catch((err) =>
+              console.error('[room] 해금 알림 실패', err),
+            );
+          }
         },
         toUser: (userId, event, payload) => {
           const member = room.members.get(String(userId));
@@ -329,6 +336,36 @@ export class RoomManager {
     room.game = game;
     this.persist(room);
     return game;
+  }
+
+  /**
+   * 이번 판으로 새로 열린 파츠를 각자에게 알린다.
+   *
+   * "언제 열렸는지"를 저장하는 곳이 없어서(해금은 기록에서 계산된다) 이번 판의
+   * 몫을 빼서 직전 진행도를 되돌린다 — 판 수는 1, 라운드 승수는 이번에 딴 만큼.
+   * 스냅샷을 따로 들고 다니는 것보다 정확하고, 기록이 실패했으면 before와 after가
+   * 같아져서 조용히 아무것도 안 보낸다.
+   *
+   * @param {import('./rooms.js').Room} room
+   * @param {Array<{ userId: any, roundWins: number }>} ranks
+   */
+  async #announceUnlocks(room, ranks) {
+    if (!this.store?.getUnlockProgress) return;
+
+    for (const rank of ranks ?? []) {
+      const member = room.members.get(String(rank.userId));
+      if (!member?.socketId) continue; // 이미 나간 사람에게 보낼 곳이 없다
+
+      const after = await this.store.getUnlockProgress(rank.userId);
+      const before = {
+        ...after,
+        roundWins: Math.max(0, after.roundWins - (rank.roundWins ?? 0)),
+        games: Math.max(0, after.games - 1),
+      };
+
+      const parts = newlyUnlocked(before, after);
+      if (parts.length) this.io.to(member.socketId).emit('unlock.new', { parts });
+    }
   }
 
   #onGameEnded(room) {
