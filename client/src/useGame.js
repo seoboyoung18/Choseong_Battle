@@ -72,6 +72,25 @@ export function useGame() {
       patch({ matching: false, notice: { text: '상대를 찾지 못했어요', seq: Date.now() } }),
     );
 
+    // 끊겼다 돌아왔다. 남은 시간은 deadlineTs로 재니 흐른 시간이 저절로 반영된다.
+    socket.on('game.resume', (snapshot) => {
+      setState((prev) => ({
+        ...prev,
+        phase: 'PLAYING',
+        round: {
+          roundNo: snapshot.roundNo,
+          totalRounds: snapshot.totalRounds,
+          hint: snapshot.hint,
+          deadlineTs: snapshot.deadlineTs,
+        },
+        scores: snapshot.scores ?? {},
+        suddenDeath: Boolean(snapshot.suddenDeath),
+        pass: null,
+        result: null,
+        notice: { text: '다시 연결됐어요', seq: Date.now() },
+      }));
+    });
+
     socket.on('round.start', (round) => {
       setState((prev) => ({
         ...prev,
@@ -156,7 +175,16 @@ export function useGame() {
     });
   }, [patch]);
 
-  useEffect(() => () => socketRef.current?.close(), []);
+  // 정리할 때 ref도 비운다. StrictMode는 개발 모드에서 마운트를 두 번 돌리는데,
+  // 닫아만 두고 ref를 남기면 다시 마운트됐을 때 signIn이 "이미 있다"고 판단해
+  // 끊긴 소켓을 그대로 들고 있게 된다 — 새로고침 자동 접속이 여기서 막혔었다.
+  useEffect(
+    () => () => {
+      socketRef.current?.close();
+      socketRef.current = null;
+    },
+    [],
+  );
 
   const emit = useCallback((event, payload = {}) => {
     socketRef.current?.emit(event, payload);

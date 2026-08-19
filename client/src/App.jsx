@@ -58,6 +58,17 @@ export default function App() {
   // 백그라운드로 가면 소리를 멈춘다 (앱인토스 검수 요건)
   useEffect(watchVisibility, []);
 
+  // 새로고침이면 닉네임을 다시 묻지 않고 바로 붙는다 — 게임 중이었다면 30초
+  // 유예 안에 돌아가야 하는데, 그 사이에 다시 입력하게 하면 늦는다.
+  // (소리는 사용자 조작이 있어야 깨어나므로 첫 터치 때 켜진다)
+  useEffect(() => {
+    if (!signedIn && savedNickname) {
+      setSignedIn(true);
+      signIn({ userId: loadAccount(), nickname: savedNickname });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const myNick = state.me?.nickname;
   useEffect(() => {
     if (myNick) sessionStorage.setItem('cb.nickname', myNick);

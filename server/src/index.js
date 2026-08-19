@@ -123,6 +123,31 @@ gameNsp.on('connection', (socket) => {
 
   const fail = (code, message) => socket.emit('error.notice', { code, message });
 
+  // ── 재접속 복구 (FR-R6 · NFR-4) ────────────────────────────────────────────
+  //
+  // 끊긴 자리는 유예 시간 동안 비워두고 있었지만(아래 disconnect), 돌아온 사람을
+  // 그 자리에 다시 앉히는 쪽이 없었다. 새로고침 한 번이면 판을 잃었다.
+  //
+  // 같은 userId로 다시 붙으면 소켓만 갈아끼운다 — 방·점수·현재 라운드는 서버가
+  // 그대로 들고 있으므로 상태를 복원할 게 아니라 연결만 이어주면 된다.
+  const previous = rooms.roomOf(userId);
+  if (previous) {
+    const member = previous.members.get(userId);
+    if (member) {
+      member.connected = true;
+      member.socketId = socket.id;
+      socket.join(previous.id);
+
+      // 진행 중이면 현재 라운드까지 되돌려 준다. 남은 시간은 deadlineTs로
+      // 계산하므로 끊겨 있던 동안 흐른 시간이 저절로 반영된다.
+      const resume = previous.game?.reconnect(userId) ?? null;
+      if (resume && resume.status === 'PLAYING') socket.emit('game.resume', resume);
+
+      // 남은 사람들 화면의 '연결 끊김' 표시도 지워야 한다
+      broadcastRoom(previous);
+    }
+  }
+
   // ── 빠른 매칭 ──────────────────────────────────────────────────────────────
 
   socket.on('matching.join', async ({ category, size = RULES.MAX_PLAYERS } = {}) => {
