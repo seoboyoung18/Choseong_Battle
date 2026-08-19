@@ -99,3 +99,19 @@
   text-align: center;
   margin: 0;
 }
+
+/* 라운드 줄 오른쪽 아이콘 버튼 (소리·나가기) */
+.play__icon {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 4px 6px;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-sub);
+}
+
+.play__icon:active {
+  transform: scale(0.9);
+}

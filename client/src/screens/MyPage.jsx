@@ -18,6 +18,7 @@ import {
 } from '../../../shared/avatar.js';
 import { Avatar } from '../avatar/Avatar.jsx';
 import { CATEGORY_LABEL, MODE_LABEL, PRACTICE_TIERS, PRACTICE_TIER_ORDER } from '../constants.js';
+import { isSoundOn, setSoundOn } from '../sound.js';
 import './MyPage.css';
 
 /** 파츠 전체 수 — 해금 진행률에 쓴다 */
@@ -154,12 +155,6 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
         >
           {saving ? '저장 중…' : '저장'}
         </button>
-        {/* 사전 출처 표기 — CC BY-SA 2.0 KR의 저작자 표시 의무 (NFR-7) */}
-        <p className="mypage__credit muted">
-          낱말 출처: 국립국어원 한국어기초사전
-          <br />
-          CC BY-SA 2.0 KR
-        </p>
       </div>
     </div>
   );
@@ -169,6 +164,7 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
 
 export function MyPage({ user, profile, notice, actions, onClose }) {
   const [editing, setEditing] = useState(false);
+  const [sound, setSound] = useState(isSoundOn);
 
   const stats = profile?.stats ?? user.stats;
   const rank = profile?.weeklyRank ?? user.weeklyRank;
@@ -308,6 +304,35 @@ export function MyPage({ user, profile, notice, actions, onClose }) {
             </ul>
           )}
         </section>
+
+        {/* 설정 — 앱인토스 검수: 사운드 On/Off 제공 필수 */}
+        <section className="card">
+          <div className="row">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <strong>효과음</strong>
+              <div className="muted" style={{ fontSize: 12 }}>
+                정답·라운드 승리·해금에 짧게 울려요
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`btn btn--sm ${sound ? 'btn--sage' : 'btn--ghost'}`}
+              aria-pressed={sound}
+              onClick={() => setSound(setSoundOn(!sound))}
+            >
+              {sound ? '켜짐' : '꺼짐'}
+            </button>
+          </div>
+        </section>
+
+        {/* 사전 출처 표기 — CC BY-SA 2.0 KR의 저작자 표시 의무 (NFR-7).
+            편집 패널 안이 아니라 화면 맨 아래에 둔다 — 꾸미기를 열어야만 보이면
+            표시했다고 하기 어렵다 */}
+        <p className="mypage__credit muted">
+          낱말 출처: 국립국어원 한국어기초사전
+          <br />
+          CC BY-SA 2.0 KR
+        </p>
       </div>
     </div>
   );

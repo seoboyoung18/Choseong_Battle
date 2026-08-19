@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { REJECT_MESSAGE, connect } from './socket/client.js';
+import { play } from './sound.js';
 
 const initialState = {
   me: null, // 서버가 확정한 내 신원 { userId, nickname, appearance, stats }
@@ -51,7 +52,10 @@ export function useGame() {
     socket.on('session.ready', (me) => patch({ me }));
     socket.on('ranking.weekly', (ranking) => patch({ ranking }));
     socket.on('me.profile', (profile) => patch({ profile }));
-    socket.on('unlock.new', ({ parts }) => patch({ unlocked: parts ?? [] }));
+    socket.on('unlock.new', ({ parts }) => {
+      patch({ unlocked: parts ?? [] });
+      if (parts?.length) play('unlock');
+    });
 
     socket.on('room.state', (room) => {
       setState((prev) => ({
@@ -96,12 +100,15 @@ export function useGame() {
     socket.on('round.passState', (pass) => patch({ pass }));
 
     socket.on('round.won', (win) => {
-      setState((prev) => ({
-        ...prev,
-        scores: win.scores,
-        lastWin: { word: win.word, nickname: win.winner.nickname, elapsedMs: win.elapsedMs },
-        pass: null,
-      }));
+      setState((prev) => {
+        play(String(win.winner?.userId) === String(prev.me?.userId) ? 'win' : 'lose');
+        return {
+          ...prev,
+          scores: win.scores,
+          lastWin: { word: win.word, nickname: win.winner.nickname, elapsedMs: win.elapsedMs },
+          pass: null,
+        };
+      });
     });
 
     socket.on('game.suddenDeath', () =>
@@ -115,6 +122,7 @@ export function useGame() {
     });
 
     socket.on('submit.rejected', ({ reason }) => {
+      play('wrong');
       const text = REJECT_MESSAGE[reason];
       if (text) patch({ notice: { text, seq: Date.now(), shake: true } });
     });
@@ -131,16 +139,21 @@ export function useGame() {
       patchPractice({ question, streak: question.streak, result: null, notice: null }),
     );
 
-    socket.on('practice.correct', ({ word, streak }) =>
-      patchPractice({ streak, notice: { text: `${word} 정답!`, seq: Date.now() } }),
-    );
+    socket.on('practice.correct', ({ word, streak }) => {
+      play('correct');
+      patchPractice({ streak, notice: { text: `${word} 정답!`, seq: Date.now() } });
+    });
 
     socket.on('practice.rejected', ({ reason }) => {
+      play('wrong');
       const text = REJECT_MESSAGE[reason];
       if (text) patchPractice({ notice: { text, seq: Date.now(), shake: true } });
     });
 
-    socket.on('practice.ended', (result) => patchPractice({ result, question: null }));
+    socket.on('practice.ended', (result) => {
+      if (result.unlocked?.length) play('unlock');
+      patchPractice({ result, question: null });
+    });
   }, [patch]);
 
   useEffect(() => () => socketRef.current?.close(), []);

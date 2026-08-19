@@ -8,6 +8,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { initSound, watchVisibility } from './sound.js';
+
 import { Lobby } from './screens/Lobby.jsx';
 import { MyPage } from './screens/MyPage.jsx';
 import { Play } from './screens/Play.jsx';
@@ -47,9 +49,14 @@ export default function App() {
   const [savedNickname] = useState(loadNickname);
 
   const handleSignIn = (nickname) => {
+    // 자동재생 정책 때문에 오디오는 사용자 조작 안에서만 깨울 수 있다
+    initSound();
     setSignedIn(true);
     signIn({ userId: loadAccount(), nickname });
   };
+
+  // 백그라운드로 가면 소리를 멈춘다 (앱인토스 검수 요건)
+  useEffect(watchVisibility, []);
 
   const myNick = state.me?.nickname;
   useEffect(() => {

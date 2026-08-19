@@ -11,9 +11,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Hint } from '../components/Hint.jsx';
 import { Keyboard } from '../components/Keyboard.jsx';
 import { Avatar } from '../avatar/Avatar.jsx';
+import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
 import { REACTIONS } from '../constants.js';
 import { HangulComposer, isComplete } from '../hangul/automata.js';
 import { jamoFromEvent } from '../hangul/keyboard.js';
+import { isSoundOn, play, setSoundOn } from '../sound.js';
 import { useCountdown } from '../useGame.js';
 import './Play.css';
 
@@ -25,6 +27,8 @@ export function Play({ state, user, actions }) {
   const [shift, setShift] = useState(false);
   // 물리 Shift는 따로 센다 — 화면 시프트는 한 글자 쓰고 풀리지만 물리는 뗄 때까지 눌린 채다
   const [heldShift, setHeldShift] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [sound, setSound] = useState(isSoundOn);
   const [passed, setPassed] = useState(false);
   const [localNotice, setLocalNotice] = useState(null);
   const secondsLeft = useCountdown(round?.deadlineTs);
@@ -119,6 +123,12 @@ export function Play({ state, user, actions }) {
     [players, scores],
   );
 
+  // 마지막 3초는 초마다 짧게 울린다. useCountdown이 같은 값으로는 다시 렌더하지
+  // 않으므로 초가 바뀔 때 한 번씩만 난다.
+  useEffect(() => {
+    if (secondsLeft > 0 && secondsLeft <= 3) play('tick');
+  }, [secondsLeft]);
+
   const urgent = secondsLeft <= 5;
 
   return (
@@ -146,6 +156,24 @@ export function Play({ state, user, actions }) {
         </span>
         <div className="spacer" />
         <span className={`play__timer ${urgent ? 'is-urgent' : ''}`}>{secondsLeft}</span>
+        {/* 소리 끄기·나가기 — 검수 요건상 모든 화면에 탈출 경로가 있어야 한다 */}
+        <button
+          type="button"
+          className="play__icon"
+          aria-label={sound ? '소리 끄기' : '소리 켜기'}
+          aria-pressed={sound}
+          onClick={() => setSound(setSoundOn(!sound))}
+        >
+          {sound ? '🔊' : '🔇'}
+        </button>
+        <button
+          type="button"
+          className="play__icon"
+          aria-label="나가기"
+          onClick={() => setLeaving(true)}
+        >
+          ✕
+        </button>
       </div>
 
       {/* 문제 */}
@@ -193,6 +221,15 @@ export function Play({ state, user, actions }) {
         <p className="muted play__last">
           지난 라운드 정답: <strong>{lastWin.word}</strong> — {lastWin.nickname} 님이 맞혔어요
         </p>
+      )}
+
+      {leaving && (
+        <ConfirmDialog
+          title="게임을 나갈까요?"
+          body="지금 나가면 이번 판 점수는 여기서 멈춰요. 30초 안에 돌아오면 이어서 할 수 있어요."
+          onConfirm={actions.leaveRoom}
+          onCancel={() => setLeaving(false)}
+        />
       )}
 
       <Keyboard
