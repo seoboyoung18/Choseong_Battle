@@ -13,7 +13,7 @@ import { Keyboard } from '../components/Keyboard.jsx';
 import { Avatar } from '../avatar/Avatar.jsx';
 import { REACTIONS } from '../constants.js';
 import { HangulComposer, isComplete } from '../hangul/automata.js';
-import { keyToJamo } from '../hangul/keyboard.js';
+import { jamoFromEvent } from '../hangul/keyboard.js';
 import { useCountdown } from '../useGame.js';
 import './Play.css';
 
@@ -23,6 +23,8 @@ export function Play({ state, user, actions }) {
   const composerRef = useRef(new HangulComposer());
   const [text, setText] = useState('');
   const [shift, setShift] = useState(false);
+  // 물리 Shift는 따로 센다 — 화면 시프트는 한 글자 쓰고 풀리지만 물리는 뗄 때까지 눌린 채다
+  const [heldShift, setHeldShift] = useState(false);
   const [passed, setPassed] = useState(false);
   const [localNotice, setLocalNotice] = useState(null);
   const secondsLeft = useCountdown(round?.deadlineTs);
@@ -72,25 +74,37 @@ export function Play({ state, user, actions }) {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === 'Enter') {
+      // key가 아니라 code로 본다 — 한글 입력기가 켜져 있으면 key는 'Process'다
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') {
         e.preventDefault();
         submit();
         return;
       }
-      if (e.key === 'Backspace') {
+      if (e.code === 'Backspace') {
         e.preventDefault();
         backspace();
         return;
       }
-      const jamo = keyToJamo(e.key);
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        setHeldShift(true);
+        return;
+      }
+      const jamo = jamoFromEvent(e);
       if (jamo) {
         e.preventDefault();
         composerRef.current.insert(jamo);
         sync();
       }
     };
+    const onKeyUp = (e) => {
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') setHeldShift(false);
+    };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   }, [submit, backspace, sync]);
 
   const togglePass = () => {
@@ -185,7 +199,7 @@ export function Play({ state, user, actions }) {
         onJamo={insert}
         onBackspace={backspace}
         onSubmit={submit}
-        shift={shift}
+        shift={shift || heldShift}
         onShift={() => setShift((s) => !s)}
         disabled={!round}
       />

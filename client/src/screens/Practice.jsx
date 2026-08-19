@@ -12,7 +12,7 @@ import { Hint } from '../components/Hint.jsx';
 import { Keyboard } from '../components/Keyboard.jsx';
 import { CATEGORY_LABEL, CATEGORY_ORDER, PRACTICE_TIERS, PRACTICE_TIER_ORDER } from '../constants.js';
 import { HangulComposer, isComplete } from '../hangul/automata.js';
-import { keyToJamo } from '../hangul/keyboard.js';
+import { jamoFromEvent } from '../hangul/keyboard.js';
 import { useCountdown } from '../useGame.js';
 import './Practice.css';
 
@@ -79,6 +79,8 @@ function Run({ state, actions }) {
   const composerRef = useRef(new HangulComposer());
   const [text, setText] = useState('');
   const [shift, setShift] = useState(false);
+  // 물리 Shift는 따로 센다 — 화면 시프트는 한 글자 쓰고 풀리지만 물리는 뗄 때까지 눌린 채다
+  const [heldShift, setHeldShift] = useState(false);
   const [localNotice, setLocalNotice] = useState(null);
   const secondsLeft = useCountdown(question?.deadlineTs);
 
@@ -118,13 +120,37 @@ function Run({ state, actions }) {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === 'Enter') { e.preventDefault(); submit(); return; }
-      if (e.key === 'Backspace') { e.preventDefault(); backspace(); return; }
-      const jamo = keyToJamo(e.key);
-      if (jamo) { e.preventDefault(); composerRef.current.insert(jamo); sync(); }
+      // key가 아니라 code로 본다 — 한글 입력기가 켜져 있으면 key는 'Process'다
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+        e.preventDefault();
+        submit();
+        return;
+      }
+      if (e.code === 'Backspace') {
+        e.preventDefault();
+        backspace();
+        return;
+      }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        setHeldShift(true);
+        return;
+      }
+      const jamo = jamoFromEvent(e);
+      if (jamo) {
+        e.preventDefault();
+        composerRef.current.insert(jamo);
+        sync();
+      }
+    };
+    const onKeyUp = (e) => {
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') setHeldShift(false);
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   }, [submit, backspace, sync]);
 
   const timed = question?.deadlineTs !== null && question?.deadlineTs !== undefined;
@@ -171,7 +197,7 @@ function Run({ state, actions }) {
         onJamo={insert}
         onBackspace={backspace}
         onSubmit={submit}
-        shift={shift}
+        shift={shift || heldShift}
         onShift={() => setShift((s) => !s)}
         disabled={!question}
       />
