@@ -403,6 +403,32 @@ export class PostgresStore {
   }
 
   /**
+   * 단어 신고를 접수한다 (FR-W1).
+   *
+   * 같은 사람이 같은 낱말을 여러 번 눌러도 한 건만 남긴다 — 검수 목록이
+   * 한 사람의 반복으로 부풀면 "몇 명이 억울했는가"를 못 읽는다.
+   *
+   * @param {{ userId: number, text: string, action?: string, context?: string|null }} params
+   * @returns {Promise<{ accepted: boolean } | null>} accepted=false면 이미 접수된 건
+   */
+  async reportWord({ userId, text, action = 'ADD', context = null }) {
+    return this.#safe('단어 신고', async () => {
+      const { rows } = await this.db.query(
+        `INSERT INTO word_reports (user_id, text, action, context)
+         SELECT $1, $2, $3::report_action, $4
+          WHERE NOT EXISTS (
+                SELECT 1 FROM word_reports
+                 WHERE user_id = $1 AND text = $2
+                   AND action = $3::report_action AND status = 'PENDING'
+          )
+      RETURNING id`,
+        [userId, text, action, context],
+      );
+      return { accepted: rows.length > 0 };
+    });
+  }
+
+  /**
    * 파츠 해금 판정에 쓰는 진행도.
    *
    * 전적과 따로 세는 이유: 해금은 "누적"이 기준이라 연습 최고 연속까지 함께

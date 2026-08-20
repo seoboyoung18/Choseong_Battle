@@ -111,6 +111,7 @@ export default function App() {
       <Practice
         practice={state.practice}
         user={user}
+        report={state.report}
         actions={actions}
         onClose={actions.closePractice}
       />

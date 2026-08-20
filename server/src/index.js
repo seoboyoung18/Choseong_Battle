@@ -15,6 +15,7 @@ import { PRACTICE_TIERS, RULES, config } from './config.js';
 import { pool, query } from './db/pool.js';
 import { PostgresStore } from './db/store.js';
 import { PracticeSession } from './game/practice.js';
+import { isHangulWord } from './judge/hangul.js';
 import { RoomManager } from './game/rooms.js';
 import { Matchmaker, isValidCategory, isValidSize } from './matching/queue.js';
 import { isValidWeek } from './ranking/week.js';
@@ -294,6 +295,32 @@ gameNsp.on('connection', (socket) => {
 
   socket.on('practice.records', async () => {
     socket.emit('practice.records', { records: await store.getPracticeRecords(user.userId) });
+  });
+
+  // ── 단어 신고 (FR-W1) ──────────────────────────────────────────────────────
+
+  // 사전이 10만 개여도 "이게 왜 안 돼?"는 반드시 나온다. 그 순간을 그냥 흘리면
+  // 사전을 넓힐 근거가 로그밖에 남지 않는다 — 유저가 직접 짚어준 낱말이 훨씬 세다.
+  socket.on('word.report', async ({ text, action = 'ADD', context = null } = {}) => {
+    const word = String(text ?? '').trim();
+    if (!isHangulWord(word) || word.length < 2 || word.length > 4) {
+      return fail('INVALID_PARAM', '2~4글자 한글 낱말만 신고할 수 있어요');
+    }
+    if (action !== 'ADD' && action !== 'REMOVE') {
+      return fail('INVALID_PARAM', '알 수 없는 신고 종류예요');
+    }
+
+    const saved = await store.reportWord({
+      userId: user.userId,
+      text: word,
+      action,
+      context: context ? String(context).slice(0, 200) : null,
+    });
+    if (!saved) return fail('REPORT_FAILED', '접수하지 못했어요. 잠시 뒤 다시 시도해 주세요');
+
+    // 이미 낸 신고여도 유저에게는 똑같이 접수됐다고 답한다 — 중복인지 아닌지는
+    // 운영 쪽 사정이지 유저가 알 일이 아니다.
+    socket.emit('word.reported', { text: word, action });
   });
 
   // ── 랭킹 · 전적 ────────────────────────────────────────────────────────────

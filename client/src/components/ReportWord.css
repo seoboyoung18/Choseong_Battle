@@ -1,0 +1,36 @@
+/* 거절 안내 바로 아래에 붙는 한 줄. 눈에 띄되 플레이를 가리지 않게 */
+.report {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px dashed var(--sand-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink-sub);
+  cursor: pointer;
+  text-align: center;
+}
+
+.report:active {
+  background: var(--card);
+}
+
+.report strong {
+  color: var(--terracotta);
+}
+
+/* 접수된 뒤에는 버튼이 아니라 안내다 */
+.report--done {
+  border-style: solid;
+  border-color: var(--sage);
+  color: var(--sage-dark);
+  cursor: default;
+}
+
+.report--done strong {
+  color: var(--sage-dark);
+}

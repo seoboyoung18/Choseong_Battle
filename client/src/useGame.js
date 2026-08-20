@@ -27,6 +27,8 @@ const initialState = {
   ranking: null, // 주간 랭킹 { week, top, me, minGames }
   showRanking: false,
   unlocked: [], // 이번 판으로 새로 열린 파츠 [{ slot, id, label }]
+  // 사전에 없다고 거절된 낱말 — 신고 버튼을 띄울 근거 { word, done }
+  report: null,
   profile: null, // 마이페이지 { recentGames, rankHistory, practiceRecords, ... }
   showMyPage: false,
   showPractice: false,
@@ -97,6 +99,7 @@ export function useGame() {
         phase: 'PLAYING',
         round,
         pass: null,
+        report: null,
         // 지난 판의 해금 알림이 다음 판까지 따라오면 안 된다
         unlocked: [],
         suddenDeath: Boolean(round.suddenDeath),
@@ -109,6 +112,7 @@ export function useGame() {
         ...prev,
         round: { ...prev.round, ...round },
         pass: null,
+        report: null,
         notice: {
           text: round.reason === 'ALL_PASSED' ? '모두 패스! 문제 교체' : '시간 초과! 문제 교체',
           seq: Date.now(),
@@ -140,11 +144,21 @@ export function useGame() {
       socket.emit('me.refresh');
     });
 
-    socket.on('submit.rejected', ({ reason }) => {
+    socket.on('submit.rejected', ({ reason, word }) => {
       play('wrong');
       const text = REJECT_MESSAGE[reason];
-      if (text) patch({ notice: { text, seq: Date.now(), shake: true } });
+      patch({
+        ...(text ? { notice: { text, seq: Date.now(), shake: true } } : {}),
+        // 패턴·글자수 불일치는 사전 잘못이 아니라 친 사람의 실수다
+        report: reason === 'NOT_IN_DICT' && word ? { word, done: false } : null,
+      });
     });
+
+    socket.on('word.reported', ({ text }) =>
+      setState((prev) =>
+        prev.report?.word === text ? { ...prev, report: { ...prev.report, done: true } } : prev,
+      ),
+    );
 
     socket.on('error.notice', ({ message }) => patch({ notice: { text: message, seq: Date.now() } }));
 
@@ -154,19 +168,21 @@ export function useGame() {
 
     socket.on('practice.records', ({ records }) => patchPractice({ records }));
 
-    socket.on('practice.question', (question) =>
-      patchPractice({ question, streak: question.streak, result: null, notice: null }),
-    );
+    socket.on('practice.question', (question) => {
+      patch({ report: null });
+      patchPractice({ question, streak: question.streak, result: null, notice: null });
+    });
 
     socket.on('practice.correct', ({ word, streak }) => {
       play('correct');
       patchPractice({ streak, notice: { text: `${word} 정답!`, seq: Date.now() } });
     });
 
-    socket.on('practice.rejected', ({ reason }) => {
+    socket.on('practice.rejected', ({ reason, word }) => {
       play('wrong');
       const text = REJECT_MESSAGE[reason];
       if (text) patchPractice({ notice: { text, seq: Date.now(), shake: true } });
+      patch({ report: reason === 'NOT_IN_DICT' && word ? { word, done: false } : null });
     });
 
     socket.on('practice.ended', (result) => {
@@ -203,6 +219,8 @@ export function useGame() {
     submit: (word) => emit('round.submit', { word }),
     pass: (passed) => emit('round.pass', { passed }),
     react: (emoji) => emit('reaction.send', { emoji }),
+    /** 사전에 없다고 거절된 낱말을 등록 요청한다 (FR-W1) */
+    reportWord: (word, context) => emit('word.report', { text: word, action: 'ADD', context }),
     joinMatching: (category, size) => {
       patch({ matching: true });
       emit('matching.join', { category, size });

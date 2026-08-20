@@ -147,7 +147,7 @@ export class Game {
 
     if (!verdict.ok) {
       await this.#record({ userId: id, word, result: `REJECTED_${verdict.reason}`, elapsedMs });
-      return this.#reject(id, verdict.reason);
+      return this.#reject(id, verdict.reason, word);
     }
 
     // 여기서부터가 경합 구간. SET NX가 판정과 기록을 한 명령으로 끝낸다.
@@ -253,8 +253,13 @@ export class Game {
 
   // ── 내부 ───────────────────────────────────────────────────────────────────
 
-  #reject(userId, reason) {
-    this.emit.toUser(userId, 'submit.rejected', { roundNo: this.roundNo, reason });
+  /**
+   * @param {string} userId
+   * @param {string} reason
+   * @param {string} [word] 판정에서 걸린 낱말 — 사전 미등재 신고에 쓴다
+   */
+  #reject(userId, reason, word) {
+    this.emit.toUser(userId, 'submit.rejected', { roundNo: this.roundNo, reason, word });
     return { ok: false, reason };
   }
 

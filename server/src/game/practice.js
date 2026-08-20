@@ -91,7 +91,7 @@ export class PracticeSession {
     });
 
     if (!verdict.ok) {
-      this.emit('practice.rejected', { reason: verdict.reason });
+      this.emit('practice.rejected', { reason: verdict.reason, word });
       // 자유 단계는 몇 번을 틀려도 계속 간다
       if (this.config.limitMs !== null) this.#end(PRACTICE_END.WRONG);
       return;

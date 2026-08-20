@@ -402,3 +402,70 @@ test('주차별 랭킹 이력은 최신 주부터 준다', async (t) => {
   assert.equal(history[0].roundWins, 30);
   assert.equal(history[1].gamesCounted, 3);
 });
+
+test('단어 신고를 접수한다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  const me = await makeUser('신고자');
+  const word = `테스트낱말${process.pid % 10}`.slice(0, 4);
+
+  const first = await store.reportWord({ userId: me.id, text: word, context: '연습' });
+  assert.equal(first.accepted, true);
+
+  const { rows } = await query(
+    `SELECT user_id, action, status, context FROM word_reports WHERE text = $1`,
+    [word],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].action, 'ADD');
+  assert.equal(rows[0].status, 'PENDING');
+  assert.equal(rows[0].context, '연습');
+});
+
+test('같은 사람이 같은 낱말을 또 신고해도 한 건만 남는다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  // 목록이 한 사람의 반복으로 부풀면 "몇 명이 억울했는가"를 못 읽는다
+  const me = await makeUser('연타');
+  const word = '연타낱말';
+
+  await store.reportWord({ userId: me.id, text: word });
+  const again = await store.reportWord({ userId: me.id, text: word });
+  assert.equal(again.accepted, false, '두 번째는 접수되지 않아야 한다');
+
+  const { rows } = await query(`SELECT count(*)::int AS n FROM word_reports WHERE text = $1`, [word]);
+  assert.equal(rows[0].n, 1);
+});
+
+test('다른 사람이 같은 낱말을 신고하면 따로 쌓인다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  // 몇 명이 겪었는지가 검수 우선순위의 근거다
+  const a = await makeUser('첫째');
+  const b = await makeUser('둘째');
+  const word = '같은낱말';
+
+  await store.reportWord({ userId: a.id, text: word });
+  await store.reportWord({ userId: b.id, text: word });
+
+  const { rows } = await query(
+    `SELECT count(DISTINCT user_id)::int AS people FROM word_reports WHERE text = $1`,
+    [word],
+  );
+  assert.equal(rows[0].people, 2);
+});
+
+test('처리된 신고는 다시 접수할 수 있다', async (t) => {
+  if (!available) return t.skip('DB 없음');
+
+  // 한 번 기각된 낱말이라도 나중에 사정이 바뀔 수 있다.
+  // 중복 방지는 PENDING인 건에만 걸린다.
+  const me = await makeUser('재신고');
+  const word = '재신고말';
+
+  await store.reportWord({ userId: me.id, text: word });
+  await query(`UPDATE word_reports SET status = 'REJECTED' WHERE text = $1`, [word]);
+
+  const again = await store.reportWord({ userId: me.id, text: word });
+  assert.equal(again.accepted, true);
+});

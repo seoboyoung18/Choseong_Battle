@@ -12,6 +12,7 @@ import { Hint } from '../components/Hint.jsx';
 import { Keyboard } from '../components/Keyboard.jsx';
 import { Avatar } from '../avatar/Avatar.jsx';
 import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
+import { ReportWord } from '../components/ReportWord.jsx';
 import { REACTIONS } from '../constants.js';
 import { HangulComposer, isComplete } from '../hangul/automata.js';
 import { jamoFromEvent } from '../hangul/keyboard.js';
@@ -20,7 +21,7 @@ import { useCountdown } from '../useGame.js';
 import './Play.css';
 
 export function Play({ state, user, actions }) {
-  const { round, room, scores, pass, lastWin, suddenDeath } = state;
+  const { round, room, scores, pass, lastWin, suddenDeath, report } = state;
 
   const composerRef = useRef(new HangulComposer());
   const [text, setText] = useState('');
@@ -190,6 +191,8 @@ export function Play({ state, user, actions }) {
       <div className="play__notice" key={`n-${notice?.seq}`}>
         {notice?.text ?? ''}
       </div>
+
+      <ReportWord report={report} onReport={(w) => actions.reportWord(w, `round ${round?.roundNo ?? ""}`)} />
 
       <div className="spacer" />
 

@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { UnlockBanner } from '../avatar/UnlockBanner.jsx';
+import { ReportWord } from '../components/ReportWord.jsx';
 import { Hint } from '../components/Hint.jsx';
 import { Keyboard } from '../components/Keyboard.jsx';
 import { CATEGORY_LABEL, CATEGORY_ORDER, PRACTICE_TIERS, PRACTICE_TIER_ORDER } from '../constants.js';
@@ -74,7 +75,7 @@ function Setup({ records, onStart, onClose }) {
 }
 
 /** 도전 진행 */
-function Run({ state, actions }) {
+function Run({ state, report, actions }) {
   const { question, streak, notice } = state;
   const composerRef = useRef(new HangulComposer());
   const [text, setText] = useState('');
@@ -179,6 +180,8 @@ function Run({ state, actions }) {
 
       <div className="play__notice" key={`n-${shown?.seq}`}>{shown?.text ?? ''}</div>
 
+      <ReportWord report={report} onReport={(w) => actions.reportWord(w, '연습')} />
+
       <div className="spacer" />
 
       <div className="row">
@@ -251,14 +254,14 @@ function Ended({ result, user, actions, onClose }) {
   );
 }
 
-export function Practice({ practice, user, actions, onClose }) {
+export function Practice({ practice, user, report, actions, onClose }) {
   if (practice.result) {
     return (
       <Ended result={practice.result} user={user} actions={actions} onClose={actions.practiceReset} />
     );
   }
   if (practice.question) {
-    return <Run state={practice} actions={actions} />;
+    return <Run state={practice} report={report} actions={actions} />;
   }
   return <Setup records={practice.records} onStart={actions.practiceStart} onClose={onClose} />;
 }
