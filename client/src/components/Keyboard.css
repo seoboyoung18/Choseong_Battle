@@ -88,3 +88,18 @@
   color: rgba(255, 255, 255, 0.4);
   cursor: default;
 }
+
+/* 물리 키보드 입력을 되비추는 눌림 상태 — :active와 같은 모양 */
+.kb__key.is-flash {
+  background: #c9cfda;
+  transform: translateY(1px);
+}
+
+.kb__key--fn.is-flash {
+  background: #6f7a8f;
+}
+
+.kb__submit.is-flash {
+  background: var(--primary-dark);
+  transform: translateY(1px);
+}

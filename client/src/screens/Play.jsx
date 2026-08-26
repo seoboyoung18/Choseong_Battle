@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Hint } from '../components/Hint.jsx';
-import { Keyboard } from '../components/Keyboard.jsx';
+import { KEY_BACKSPACE, KEY_SUBMIT, Keyboard, useKeyFlash } from '../components/Keyboard.jsx';
 import { Avatar } from '../avatar/Avatar.jsx';
 import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
 import { ReportWord } from '../components/ReportWord.jsx';
@@ -32,6 +32,8 @@ export function Play({ state, user, actions }) {
   const [sound, setSound] = useState(isSoundOn);
   const [passed, setPassed] = useState(false);
   const [localNotice, setLocalNotice] = useState(null);
+  // 물리 키 입력을 화면 키보드에 되비춘다
+  const [keyFlash, flashKey] = useKeyFlash();
   const secondsLeft = useCountdown(round?.deadlineTs);
 
   // 서버 안내와 로컬 안내 중 나중 것을 보여준다
@@ -82,11 +84,13 @@ export function Play({ state, user, actions }) {
       // key가 아니라 code로 본다 — 한글 입력기가 켜져 있으면 key는 'Process'다
       if (e.code === 'Enter' || e.code === 'NumpadEnter') {
         e.preventDefault();
+        flashKey(KEY_SUBMIT);
         submit();
         return;
       }
       if (e.code === 'Backspace') {
         e.preventDefault();
+        flashKey(KEY_BACKSPACE);
         backspace();
         return;
       }
@@ -97,6 +101,7 @@ export function Play({ state, user, actions }) {
       const jamo = jamoFromEvent(e);
       if (jamo) {
         e.preventDefault();
+        flashKey(jamo);
         composerRef.current.insert(jamo);
         sync();
       }
@@ -110,7 +115,7 @@ export function Play({ state, user, actions }) {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [submit, backspace, sync]);
+  }, [submit, backspace, sync, flashKey]);
 
   const togglePass = () => {
     const next = !passed;
@@ -257,6 +262,7 @@ export function Play({ state, user, actions }) {
         shift={shift || heldShift}
         onShift={() => setShift((s) => !s)}
         disabled={!round}
+        flash={keyFlash}
       />
     </div>
   );

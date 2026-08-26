@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { UnlockBanner } from '../avatar/UnlockBanner.jsx';
 import { ReportWord } from '../components/ReportWord.jsx';
 import { Hint } from '../components/Hint.jsx';
-import { Keyboard } from '../components/Keyboard.jsx';
+import { KEY_BACKSPACE, KEY_SUBMIT, Keyboard, useKeyFlash } from '../components/Keyboard.jsx';
 import { CATEGORY_LABEL, CATEGORY_ORDER, PRACTICE_TIERS, PRACTICE_TIER_ORDER } from '../constants.js';
 import { HangulComposer, isComplete } from '../hangul/automata.js';
 import { jamoFromEvent } from '../hangul/keyboard.js';
@@ -89,6 +89,8 @@ function Run({ state, report, actions }) {
   // 물리 Shift는 따로 센다 — 화면 시프트는 한 글자 쓰고 풀리지만 물리는 뗄 때까지 눌린 채다
   const [heldShift, setHeldShift] = useState(false);
   const [localNotice, setLocalNotice] = useState(null);
+  // 물리 키 입력을 화면 키보드에 되비춘다
+  const [keyFlash, flashKey] = useKeyFlash();
   const secondsLeft = useCountdown(question?.deadlineTs);
 
   const shown = (localNotice?.seq ?? 0) > (notice?.seq ?? 0) ? localNotice : notice;
@@ -130,11 +132,13 @@ function Run({ state, report, actions }) {
       // key가 아니라 code로 본다 — 한글 입력기가 켜져 있으면 key는 'Process'다
       if (e.code === 'Enter' || e.code === 'NumpadEnter') {
         e.preventDefault();
+        flashKey(KEY_SUBMIT);
         submit();
         return;
       }
       if (e.code === 'Backspace') {
         e.preventDefault();
+        flashKey(KEY_BACKSPACE);
         backspace();
         return;
       }
@@ -145,6 +149,7 @@ function Run({ state, report, actions }) {
       const jamo = jamoFromEvent(e);
       if (jamo) {
         e.preventDefault();
+        flashKey(jamo);
         composerRef.current.insert(jamo);
         sync();
       }
@@ -158,7 +163,7 @@ function Run({ state, report, actions }) {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [submit, backspace, sync]);
+  }, [submit, backspace, sync, flashKey]);
 
   const timed = question?.deadlineTs !== null && question?.deadlineTs !== undefined;
   const canPass = PRACTICE_TIERS[question?.tier]?.canPass;
@@ -220,6 +225,7 @@ function Run({ state, report, actions }) {
         shift={shift || heldShift}
         onShift={() => setShift((s) => !s)}
         disabled={!question}
+        flash={keyFlash}
       />
     </div>
   );
