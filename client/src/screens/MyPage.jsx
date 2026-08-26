@@ -87,7 +87,7 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
   return (
     <div className="mypage__editor">
       <div className="mypage__preview">
-        <Avatar appearance={draft} size={132} shape="square" />
+        <Avatar appearance={draft} size={132} shape="square" className="mypage__preview-face" />
       </div>
 
       <input
@@ -182,41 +182,41 @@ export function MyPage({ user, profile, notice, actions, onClose }) {
 
   return (
     <div className="screen mypage">
-      <div className="row">
-        <h1 className="title">마이페이지</h1>
-        <div className="spacer" />
-        <button type="button" className="btn btn--ghost btn--sm" onClick={onClose}>
-          닫기
-        </button>
-      </div>
+      {/* 파란 헤더 — 캐릭터·닉네임·요약 (목업 기준) */}
+      {!editing && (
+        <div className="mypage__header">
+          <div className="row">
+            <button type="button" className="mypage__back" onClick={onClose} aria-label="닫기">
+              ‹
+            </button>
+            <div className="spacer" />
+          </div>
+          <div className="row" style={{ gap: 14 }}>
+            <Avatar appearance={user.appearance} size={72} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <strong className="mypage__nick">{user.nickname}</strong>
+              <div className="mypage__header-sub">
+                {rank ? `이번 주 ${rank.rank}위` : '이번 주 랭킹 미등재'} · 파츠{' '}
+                {countUnlocked(progress)}/{TOTAL_PARTS} 해금
+              </div>
+            </div>
+            <button type="button" className="mypage__edit-btn" onClick={() => setEditing(true)}>
+              캐릭터 꾸미기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editing && (
+        <div className="row">
+          <h1 className="title">캐릭터 꾸미기</h1>
+          <div className="spacer" />
+        </div>
+      )}
 
       <div className="mypage__scroll">
-        {/* 캐릭터 */}
-        <section className="card">
-          {!editing && (
-          <div className="mypage__profile">
-            <Avatar appearance={user.appearance} size={112} shape="square" />
-            <div className="mypage__profile-info">
-              <strong className="mypage__nick">{user.nickname}</strong>
-              <span className="muted">
-                {rank ? `이번 주 ${rank.rank}위 · ${rank.roundWins}승` : '이번 주 랭킹 미등재'}
-              </span>
-              <span className="muted">
-                파츠 {countUnlocked(progress)}/{TOTAL_PARTS} 해금
-              </span>
-              <button
-                type="button"
-                className="btn btn--sage btn--sm"
-                style={{ marginTop: 8, alignSelf: 'flex-start' }}
-                onClick={() => setEditing(true)}
-              >
-                캐릭터 꾸미기
-              </button>
-            </div>
-          </div>
-          )}
-
-          {editing && (
+        {editing && (
+          <section className="card">
             <CharacterEditor
               user={user}
               progress={progress}
@@ -224,8 +224,8 @@ export function MyPage({ user, profile, notice, actions, onClose }) {
               actions={actions}
               onDone={() => setEditing(false)}
             />
-          )}
-        </section>
+          </section>
+        )}
 
         {/* 전적 요약 */}
         <section className="card">

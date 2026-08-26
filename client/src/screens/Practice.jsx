@@ -17,6 +17,9 @@ import { jamoFromEvent } from '../hangul/keyboard.js';
 import { useCountdown } from '../useGame.js';
 import './Practice.css';
 
+/** 단계별 아이콘 — 목업의 카드 리스트를 따른다 */
+const TIER_ICON = { FREE: '🌊', T12S: '🌱', T8S: '⚡', T5S: '🔥', T3S: '💎' };
+
 /** 단계·카테고리 고르기 */
 function Setup({ records, onStart, onClose }) {
   const [category, setCategory] = useState('ALL');
@@ -27,27 +30,23 @@ function Setup({ records, onStart, onClose }) {
   return (
     <div className="screen">
       <div className="row">
-        <h1 className="title">혼자 연습</h1>
+        <h1 className="title">혼자 연습 🎯</h1>
         <div className="spacer" />
-        <button type="button" className="btn btn--ghost" onClick={onClose}>닫기</button>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={onClose}>닫기</button>
       </div>
 
-      <section className="card">
-        <strong>카테고리</strong>
-        <div className="row" style={{ flexWrap: 'wrap', marginTop: 10 }}>
-          {CATEGORY_ORDER.map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={`btn ${category === key ? '' : 'btn--ghost'}`}
-              style={{ flex: '1 0 30%', padding: '10px 8px', fontSize: 15 }}
-              onClick={() => setCategory(key)}
-            >
-              {CATEGORY_LABEL[key]}
-            </button>
-          ))}
-        </div>
-      </section>
+      <div className="chips">
+        {CATEGORY_ORDER.map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={`chip ${category === key ? 'is-on' : ''}`}
+            onClick={() => setCategory(key)}
+          >
+            {CATEGORY_LABEL[key]}
+          </button>
+        ))}
+      </div>
 
       <ul className="practice__tiers">
         {PRACTICE_TIER_ORDER.map((tier) => {
@@ -56,17 +55,24 @@ function Setup({ records, onStart, onClose }) {
           return (
             <li key={tier}>
               <button type="button" className="practice__tier" onClick={() => onStart({ tier, category })}>
-                <span className="practice__tier-name">{label}</span>
-                <span className="muted">{limitMs === null ? '제한 없음' : `${limitMs / 1000}초`}</span>
+                <span className="practice__tier-icon">{TIER_ICON[tier]}</span>
+                <span style={{ textAlign: 'left' }}>
+                  <span className="practice__tier-name">{label}</span>
+                  <span className="practice__tier-limit">
+                    {limitMs === null ? '제한 없음' : `${limitMs / 1000}초 제한`}
+                  </span>
+                </span>
                 <div className="spacer" />
-                <span className="practice__best">{best > 0 ? `최고 ${best}연속` : '기록 없음'}</span>
+                <span className={`practice__best ${best > 0 ? '' : 'is-none'}`}>
+                  {best > 0 ? `최고 ${best}연속` : '도전 전'}
+                </span>
               </button>
             </li>
           );
         })}
       </ul>
 
-      <p className="muted" style={{ margin: 0 }}>
+      <p className="muted" style={{ margin: 0, fontSize: 13 }}>
         자유 단계는 시간 제한도 없고 끝나지도 않아요. 나머지는 한 번 틀리거나
         시간이 지나면 그 자리에서 끝납니다.
       </p>
@@ -157,6 +163,11 @@ function Run({ state, report, actions }) {
   const timed = question?.deadlineTs !== null && question?.deadlineTs !== undefined;
   const canPass = PRACTICE_TIERS[question?.tier]?.canPass;
 
+  // 남은 시간 게이지 — 단계 제한시간 대비 비율
+  const limitSec = (PRACTICE_TIERS[question?.tier]?.limitMs ?? 0) / 1000;
+  const timeTone = secondsLeft <= 3 ? 'is-urgent' : secondsLeft <= limitSec / 2 ? 'is-warn' : '';
+  const timeFraction = limitSec > 0 ? Math.max(0, Math.min(1, secondsLeft / limitSec)) : 1;
+
   return (
     <div className="screen play practice">
       <div className="row">
@@ -164,11 +175,17 @@ function Run({ state, report, actions }) {
           {PRACTICE_TIERS[question?.tier]?.label} · {CATEGORY_LABEL[question?.category]}
         </span>
         <div className="spacer" />
-        <span className="practice__streak">{streak}연속</span>
+        <span className="practice__streak"><em>{streak}</em> 연속</span>
         {timed && (
-          <span className={`play__timer ${secondsLeft <= 3 ? 'is-urgent' : ''}`}>{secondsLeft}</span>
+          <span className={`play__timer ${timeTone}`}>{secondsLeft}초</span>
         )}
       </div>
+
+      {timed && (
+        <div className="play__track">
+          <div className={`play__fill ${timeTone}`} style={{ width: `${timeFraction * 100}%` }} />
+        </div>
+      )}
 
       <div className={`play__stage ${shown?.shake ? 'shake' : ''}`} key={shown?.seq}>
         <Hint hint={question?.hint} />
@@ -211,45 +228,55 @@ function Run({ state, report, actions }) {
 /** 도전 결과 */
 function Ended({ result, user, actions, onClose }) {
   const reasonText = {
-    TIMEOUT: '시간 초과!',
-    WRONG: '아쉬워요',
-    QUIT: '수고했어요',
+    TIMEOUT: '시간 초과! ⏰',
+    WRONG: '아쉬워요 😢',
+    QUIT: '수고했어요 👏',
   }[result.reason] ?? '끝';
 
   return (
     <div className="screen">
-      <div className="spacer" />
-      <h1 className="title" style={{ textAlign: 'center' }}>{reasonText}</h1>
+      <div className="practice__hero">
+        <h1 className={`practice__hero-title ${result.reason === 'QUIT' ? 'is-quit' : ''}`}>
+          {reasonText}
+        </h1>
+      </div>
 
-      <div className="card" style={{ textAlign: 'center' }}>
-        <div className="practice__result-streak">{result.streak}연속</div>
+      <div className="card" style={{ textAlign: 'center', padding: '28px 18px' }}>
+        <div className="muted" style={{ fontSize: 13, fontWeight: 700 }}>이번 기록</div>
+        <div className="practice__result-streak">{result.streak}</div>
+        <div className="muted" style={{ fontWeight: 700 }}>연속 정답</div>
         {result.isNewRecord ? (
-          <p style={{ color: 'var(--sage)', fontWeight: 700, margin: '4px 0 0' }}>최고 기록 경신!</p>
+          <div className="practice__record-badge">🏅 최고 기록 경신!</div>
         ) : (
-          <p className="muted" style={{ margin: '4px 0 0' }}>
+          <p className="muted" style={{ margin: '8px 0 0', fontSize: 13 }}>
             최고 기록 {result.bestStreak ?? 0}연속
-          </p>
-        )}
-        {result.answer && (
-          <p className="muted" style={{ marginBottom: 0 }}>
-            정답은 <strong>{result.answer}</strong> 였어요
           </p>
         )}
       </div>
 
+      {result.answer && (
+        <div className="card practice__answer">
+          <div className="muted" style={{ fontSize: 12, fontWeight: 700 }}>정답은</div>
+          <div className="word">{result.answer}</div>
+        </div>
+      )}
+
       <UnlockBanner parts={result.unlocked} appearance={user?.appearance} />
 
       <div className="spacer" />
-      <button
-        type="button"
-        className="btn"
-        onClick={() => actions.practiceStart({ tier: result.tier, category: result.category })}
-      >
-        다시 도전
-      </button>
-      <button type="button" className="btn btn--ghost" onClick={onClose}>
-        단계 고르기
-      </button>
+      <div className="row">
+        <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={onClose}>
+          단계 고르기
+        </button>
+        <button
+          type="button"
+          className="btn"
+          style={{ flex: 2 }}
+          onClick={() => actions.practiceStart({ tier: result.tier, category: result.category })}
+        >
+          다시 도전 🔄
+        </button>
+      </div>
     </div>
   );
 }

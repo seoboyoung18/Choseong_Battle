@@ -1,31 +1,185 @@
-/* 카드가 여러 장 쌓이는 화면이라 헤더는 고정하고 본문만 굴린다 */
+/* ── 파란 헤더 — 화면 상단을 꽉 채운다 (목업 기준) ─────────────────────────── */
+.mypage__header {
+  margin: calc(-1 * max(16px, env(safe-area-inset-top))) -16px 0;
+  padding: max(12px, env(safe-area-inset-top)) 20px 22px;
+  background: linear-gradient(180deg, #4f8ff7 0%, #3b82f6 100%);
+  color: #fff;
+}
+
+.mypage__back {
+  appearance: none;
+  border: none;
+  background: none;
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  padding: 4px 10px 4px 0;
+  cursor: pointer;
+}
+
+.mypage__nick {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypage__header-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 2px;
+}
+
+.mypage__edit-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mypage__edit-btn:active {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* 카드가 여러 장 쌓이는 화면이라 본문만 굴린다 */
 .mypage__scroll {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* 스크롤 컨테이너 안에서 카드 테두리가 잘리지 않게 */
   padding: 2px;
   margin: -2px;
 }
 
-.mypage__nick {
-  font-family: var(--font-title), var(--font-ui);
-  font-size: 20px;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* ── 캐릭터 편집 ───────────────────────────────────────────────────────────── */
 
-/* ── 프로필 편집 ───────────────────────────────────────────────────────────── */
-
-/* 편집 중에는 위쪽 프로필이 접히므로 카드를 통째로 차지한다 */
 .mypage__editor {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.mypage__preview {
+  display: flex;
+  justify-content: center;
+}
+
+/* 파츠 종류 탭 — 밑줄형 (목업 기준) */
+.mypage__tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mypage__tab {
+  appearance: none;
+  flex: 1;
+  padding: 12px 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.mypage__tab.is-on {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* 파츠 목록 — 칸마다 그 파츠를 입은 캐릭터가 그려진다 */
+.mypage__parts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+}
+
+.mypage__part {
+  appearance: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mypage__part.is-picked {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.mypage__part.is-picked::after {
+  content: '✓';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mypage__part-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* 잠긴 파츠도 모습은 그대로 보여준다 — 뭘 위해 이기는지 알아야 하니까.
+   조건은 덮지 않고 이름 아래에 적는다 */
+.mypage__part.is-locked {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.mypage__part-lock {
+  font-size: 9px;
+  line-height: 1.3;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+.mypage__lock-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.mypage__notice {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--danger);
+  font-weight: 700;
 }
 
 /* ── 통계 · 목록 ───────────────────────────────────────────────────────────── */
@@ -38,12 +192,14 @@
 
 .mypage__stat strong {
   display: block;
-  font-family: var(--font-title), var(--font-ui);
   font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .mypage__stat span {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .mypage__list {
@@ -56,9 +212,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--sand);
-  font-size: 15px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
 }
 
 .mypage__row:last-child {
@@ -72,15 +228,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .mypage__row-sub {
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
 .mypage__row strong {
-  font-family: var(--font-title), var(--font-ui);
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -88,140 +245,17 @@
   width: 38px;
   flex: none;
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 700;
   padding: 3px 0;
   border-radius: 999px;
-  background: var(--bg);
-  border: 1px solid var(--sand);
-  color: var(--ink-sub);
+  background: var(--muted-bg);
+  color: var(--text-2);
 }
 
 .mypage__badge.is-win {
-  background: var(--mustard);
-  border-color: var(--mustard-dark);
+  background: var(--gold);
   color: #fff;
-  font-weight: 700;
-}
-
-/* ── 캐릭터 ───────────────────────────────────────────────────────────────── */
-
-.mypage__profile {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-}
-
-.mypage__profile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-  flex: 1;
-}
-
-.mypage__profile-info .muted {
-  font-size: 12px;
-}
-
-.mypage__preview {
-  display: flex;
-  justify-content: center;
-}
-
-/* 파츠 종류 탭 */
-.mypage__tabs {
-  display: flex;
-  gap: 6px;
-}
-
-.mypage__tab {
-  appearance: none;
-  flex: 1;
-  padding: 8px 0;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ink-sub);
-  background: var(--bg);
-  border: 1px solid var(--sand);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.mypage__tab.is-on {
-  color: #fff;
-  background: var(--terracotta);
-  border-color: var(--terracotta);
-}
-
-/* 파츠 목록 — 칸마다 그 파츠를 입은 캐릭터가 그려진다 */
-.mypage__parts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.mypage__part {
-  appearance: none;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 7px 2px 6px;
-  background: var(--bg);
-  border: 2px solid var(--sand);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.mypage__part.is-picked {
-  border-color: var(--terracotta);
-  background: var(--card);
-}
-
-.mypage__part-name {
-  font-size: 12px;
-  color: var(--ink-sub);
-  white-space: nowrap;
-}
-
-/* 잠긴 파츠도 모습은 그대로 보여준다 — 뭘 위해 이기는지 알아야 하니까.
-   조건은 덮지 않고 이름 아래에 적는다 */
-.mypage__part.is-locked {
-  cursor: default;
-}
-
-.mypage__part.is-locked .avatar {
-  opacity: 0.45;
-}
-
-.mypage__part.is-locked .mypage__part-name {
-  opacity: 0.5;
-}
-
-.mypage__part-lock {
-  font-size: 9.5px;
-  line-height: 1.3;
-  text-align: center;
-  font-weight: 700;
-  color: var(--terracotta);
-}
-
-.mypage__lock-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 11px;
-  line-height: 1;
-}
-
-.mypage__notice {
-  margin: 0;
-  text-align: center;
-  font-size: 13px;
-  color: var(--terracotta);
 }
 
 /* 사전 출처 — 화면 맨 아래에 조용히 */

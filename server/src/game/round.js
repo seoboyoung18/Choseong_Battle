@@ -481,6 +481,8 @@ export class Game {
     const rows = [...this.players.keys()].map((id) => ({
       userId: this.players.get(id).userId,
       nickname: this.players.get(id).nickname,
+      // 결과 화면이 순위 옆에 캐릭터를 그린다
+      appearance: this.players.get(id).appearance,
       roundWins: this.scores.get(id),
       avgAnswerMs: this.#avgAnswerMs(id),
       leftEarly: !this.players.get(id).connected,

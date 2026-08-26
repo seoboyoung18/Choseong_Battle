@@ -8,8 +8,6 @@
 import { Avatar } from '../avatar/Avatar.jsx';
 import './Ranking.css';
 
-const MEDAL = ['🥇', '🥈', '🥉'];
-
 function seconds(ms) {
   return ms === null || ms === undefined ? '—' : `${(ms / 1000).toFixed(1)}초`;
 }
@@ -17,12 +15,28 @@ function seconds(ms) {
 function Row({ entry, isMe }) {
   return (
     <li className={`rank__row ${isMe ? 'is-me' : ''}`}>
-      <span className="rank__no">{MEDAL[entry.rank - 1] ?? entry.rank}</span>
-      <Avatar appearance={entry.appearance} size={26} />
-      <span className="rank__nick">{entry.nickname}</span>
+      <span className="rank__no">{entry.rank}</span>
+      <Avatar appearance={entry.appearance} size={32} />
+      <span className="rank__nick">
+        {entry.nickname}
+        {isMe && ' (나)'}
+      </span>
       <span className="rank__speed muted">{seconds(entry.avgAnswerMs)}</span>
       <strong className="rank__wins">{entry.roundWins}승</strong>
     </li>
+  );
+}
+
+/** 포디엄 기둥 — 1위 금, 2위 은, 3위 동. 순서는 2·1·3으로 배치한다 */
+function PodiumCol({ entry, tone }) {
+  if (!entry) return <div />;
+  return (
+    <div className="rank__col">
+      <Avatar appearance={entry.appearance} size={tone === 'gold' ? 56 : 44} />
+      <span className="rank__col-nn">{entry.nickname}</span>
+      <span className="rank__col-wc">{entry.roundWins}승</span>
+      <div className={`rank__stand is-${tone}`}>{entry.rank}위</div>
+    </div>
   );
 }
 
@@ -39,20 +53,21 @@ export function Ranking({ ranking, user, onClose }) {
   }
 
   const { week, top, me, minGames } = ranking;
-  const podium = top.slice(0, 3);
-  const rest = top.slice(3);
+  const byRank = (n) => top.find((entry) => entry.rank === n);
+  const rest = top.filter((entry) => entry.rank > 3);
 
   return (
     <div className="screen rank">
       <div className="row">
-        <h1 className="title">주간 랭킹</h1>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={onClose}>‹ 뒤로</button>
         <div className="spacer" />
-        <span className="muted">{week}</span>
+        <span className="muted">매주 월요일 00:00 리셋</span>
       </div>
 
-      <p className="muted" style={{ margin: 0 }}>
-        빠른 대전 라운드 승수 합산 · 매주 월요일 00:00 리셋
-      </p>
+      <div className="rank__head">
+        <div className="muted" style={{ fontSize: 12 }}>주간 랭킹</div>
+        <h1 className="title">{week}</h1>
+      </div>
 
       {top.length === 0 ? (
         <div className="card" style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
@@ -64,37 +79,40 @@ export function Ranking({ ranking, user, onClose }) {
         </div>
       ) : (
         <>
+          {/* 포디엄 — 가운데가 1위 */}
           <div className="rank__podium">
-            {podium.map((entry) => (
-              <div key={entry.userId} className={`rank__podium-item rank__podium-item--${entry.rank}`}>
-                <span className="rank__medal">{MEDAL[entry.rank - 1]}</span>
-                <span className="rank__nick">{entry.nickname}</span>
-                <strong>{entry.roundWins}승</strong>
-              </div>
-            ))}
+            <PodiumCol entry={byRank(2)} tone="silver" />
+            <PodiumCol entry={byRank(1)} tone="gold" />
+            <PodiumCol entry={byRank(3)} tone="bronze" />
           </div>
 
           <ul className="card rank__list">
             {rest.map((entry) => (
               <Row key={entry.userId} entry={entry} isMe={entry.userId === user.userId} />
             ))}
-            {rest.length === 0 && <p className="muted" style={{ margin: 0 }}>4위부터는 아직 비어 있어요</p>}
+            {rest.length === 0 && (
+              <p className="muted" style={{ margin: 0, textAlign: 'center' }}>4위부터는 아직 비어 있어요</p>
+            )}
           </ul>
         </>
       )}
 
       {/* 하단 고정 — 내가 목록에 없어도 여기엔 항상 뜬다 */}
-      <div className="rank__me card">
+      <div className="rank__me">
         {me ? (
-          <Row entry={me} isMe />
+          <>
+            <span className="rank__me-r">{me.rank}위</span>
+            <Avatar appearance={me.appearance ?? user.appearance} size={32} />
+            <span className="rank__nick">{me.nickname} (나)</span>
+            <div className="spacer" />
+            <strong className="rank__wins">{me.roundWins}승</strong>
+          </>
         ) : (
-          <p className="muted" style={{ margin: 0, textAlign: 'center' }}>
+          <p className="muted" style={{ margin: 0, textAlign: 'center', width: '100%' }}>
             빠른 대전 {minGames}판을 채우면 랭킹에 올라가요
           </p>
         )}
       </div>
-
-      <button type="button" className="btn btn--ghost" onClick={onClose}>닫기</button>
     </div>
   );
 }

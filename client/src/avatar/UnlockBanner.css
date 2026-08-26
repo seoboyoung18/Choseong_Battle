@@ -1,7 +1,10 @@
-/* 해금 알림 — 결과 화면에서 눈에 띄어야 하므로 머스타드 테두리를 두른다 */
+/* 해금 알림 — 결과 화면의 금색 카드 (목업 기준) */
 .unlock {
-  border-color: var(--mustard);
-  background: var(--card);
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--gold-soft) 0%, #ffe9a8 100%);
+  border: 1px solid #f5d97f;
+  box-shadow: none;
   animation: unlock-pop 0.32s ease-out;
 }
 
@@ -25,8 +28,9 @@
 
 .unlock__title {
   display: block;
-  text-align: center;
   font-size: 15px;
+  font-weight: 800;
+  color: var(--gold-ink);
 }
 
 /* 한 줄에 넘치면 옆으로 굴린다 — 한 번에 여러 개가 열릴 수 있다 */
@@ -39,16 +43,35 @@
 }
 
 .unlock__item {
+  position: relative;
   display: flex;
-  flex: none;
+  flex: 1 0 auto;
+  min-width: 84px;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 10px 10px;
+}
+
+.unlock__item::after {
+  content: 'NEW';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
 }
 
 .unlock__name {
   font-size: 12px;
-  color: var(--ink-sub);
+  font-weight: 700;
+  color: var(--text-2);
   white-space: nowrap;
 }
 
@@ -56,4 +79,5 @@
   margin: 10px 0 0;
   text-align: center;
   font-size: 12px;
+  color: var(--gold-ink);
 }

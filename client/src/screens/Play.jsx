@@ -131,23 +131,33 @@ export function Play({ state, user, actions }) {
   }, [secondsLeft]);
 
   const urgent = secondsLeft <= 5;
+  // 남은 시간 색: 초록 → 10초 이하 골드 → 5초 이하 빨강 (목업의 게이지 규칙)
+  const timeTone = urgent ? 'is-urgent' : secondsLeft <= 10 ? 'is-warn' : '';
+  const timeFraction = Math.max(0, Math.min(1, secondsLeft / 20));
+
+  // 선두 표시 — 최고 점수가 0이면 아무도 선두가 아니다
+  const topScore = Math.max(0, ...ranked.map((p) => scores[String(p.userId)] ?? 0));
 
   return (
     <div className="screen play">
       {/* 스코어보드 */}
       <div className="play__scores">
-        {ranked.map((p) => (
-          <div
-            key={p.userId}
-            className={`play__score ${String(p.userId) === String(user.userId) ? 'is-me' : ''} ${p.connected ? '' : 'is-out'}`}
-          >
-            <span className="play__nick">
-              <Avatar appearance={p.appearance} size={18} />
-              {p.nickname}
-            </span>
-            <strong>{scores[String(p.userId)] ?? 0}</strong>
-          </div>
-        ))}
+        {ranked.map((p) => {
+          const score = scores[String(p.userId)] ?? 0;
+          const lead = topScore > 0 && score === topScore;
+          return (
+            <div
+              key={p.userId}
+              className={`play__score ${String(p.userId) === String(user.userId) ? 'is-me' : ''} ${lead ? 'is-lead' : ''} ${p.connected ? '' : 'is-out'}`}
+            >
+              <span className="play__nick">
+                <Avatar appearance={p.appearance} size={18} />
+                {p.nickname}
+              </span>
+              <strong>{score}</strong>
+            </div>
+          );
+        })}
       </div>
 
       {/* 라운드 · 타이머 */}
@@ -156,7 +166,7 @@ export function Play({ state, user, actions }) {
           {suddenDeath ? '서든데스' : `${round?.roundNo ?? 1} / ${round?.totalRounds ?? '-'} 라운드`}
         </span>
         <div className="spacer" />
-        <span className={`play__timer ${urgent ? 'is-urgent' : ''}`}>{secondsLeft}</span>
+        <span className={`play__timer ${timeTone}`}>{secondsLeft}초</span>
         {/* 소리 끄기·나가기 — 검수 요건상 모든 화면에 탈출 경로가 있어야 한다 */}
         <button
           type="button"
@@ -175,6 +185,11 @@ export function Play({ state, user, actions }) {
         >
           ✕
         </button>
+      </div>
+
+      {/* 남은 시간 게이지 */}
+      <div className="play__track">
+        <div className={`play__fill ${timeTone}`} style={{ width: `${timeFraction * 100}%` }} />
       </div>
 
       {/* 문제 */}

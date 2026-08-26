@@ -1,55 +1,124 @@
+/* ── 단계 선택 — 아이콘 카드 리스트 (목업 기준) ───────────────────────────── */
 .practice__tiers {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
 }
 
 .practice__tier {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   width: 100%;
   padding: 16px;
-  border: 1px solid var(--sand);
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: 18px;
   background: var(--card);
-  box-shadow: 0 3px 0 var(--sand-border);
   font-family: inherit;
   font-size: 16px;
-  color: var(--ink);
+  color: var(--text);
   cursor: pointer;
-  transition: transform 0.05s, box-shadow 0.05s;
+  transition: transform 0.1s ease, border-color 0.1s ease;
 }
 
 .practice__tier:active {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 var(--sand-border);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.practice__tier-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  background: var(--muted-bg);
 }
 
 .practice__tier-name {
-  font-weight: 700;
-  font-size: 17px;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.practice__tier-limit {
+  display: block;
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 600;
 }
 
 .practice__best {
-  font-size: 14px;
-  color: var(--terracotta);
-  font-weight: 600;
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 700;
   white-space: nowrap;
 }
 
+.practice__best.is-none {
+  color: var(--text-3);
+}
+
+/* ── 진행 (다크 — .play 위에서 돈다) ──────────────────────────────────────── */
 .practice__streak {
-  font-family: var(--font-title), var(--font-ui);
   font-size: 20px;
-  color: var(--sage-dark);
+  font-weight: 800;
+  color: #fff;
+}
+
+.practice__streak em {
+  font-style: normal;
+  color: var(--success);
+}
+
+/* ── 결과 ─────────────────────────────────────────────────────────────────── */
+.practice__hero {
+  text-align: center;
+  padding: 24px 0 0;
+}
+
+.practice__hero-title {
+  font-size: 26px;
+  font-weight: 900;
+  margin: 0;
+  color: var(--danger);
+}
+
+.practice__hero-title.is-quit {
+  color: var(--text);
 }
 
 .practice__result-streak {
-  font-family: var(--font-title), var(--font-ui);
-  font-size: 48px;
+  font-size: 60px;
+  font-weight: 900;
   line-height: 1.1;
+  color: var(--primary);
+}
+
+.practice__record-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+
+.practice__answer {
+  text-align: center;
+}
+
+.practice__answer .word {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--primary);
 }

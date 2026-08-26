@@ -2,6 +2,7 @@
 
 import { Avatar } from '../avatar/Avatar.jsx';
 import { CATEGORY_LABEL } from '../constants.js';
+import './Room.css';
 
 export function Room({ room, user, actions }) {
   const me = room.players.find((p) => String(p.userId) === String(user.userId));
@@ -13,54 +14,78 @@ export function Room({ room, user, actions }) {
   // 혼자하기는 방에 나만 있을 때만. 남이 있는데 혼자 시작하면 그 사람은 영문도 모르고 튕긴다.
   const canStartSolo = isHost && room.players.length === 1;
 
+  const emptySlots = Math.max(0, 4 - room.players.length);
+
   return (
     <div className="screen">
       <div className="row">
-        <h1 className="title">{room.name}</h1>
+        <div>
+          <div className="muted" style={{ fontSize: 12 }}>대기방</div>
+          <h1 className="title">{room.name}</h1>
+        </div>
         <div className="spacer" />
-        <button type="button" className="btn btn--ghost" onClick={actions.leaveRoom}>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={actions.leaveRoom}>
           나가기
         </button>
       </div>
 
-      <section className="card">
-        <div className="row">
-          <strong style={{ fontSize: 24, letterSpacing: 4 }}>{room.code}</strong>
-          <div className="spacer" />
-          <span className="muted">초대 코드</span>
-        </div>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          {CATEGORY_LABEL[room.settings.category]} · {room.settings.totalRounds}문제
-        </p>
-      </section>
+      {/* 초대 코드 — 파랑 연한 배경 카드 */}
+      <div className="room__invite">
+        <span className="muted" style={{ fontWeight: 700 }}>초대코드</span>
+        <strong className="room__code">{room.code}</strong>
+        <button
+          type="button"
+          className="room__copy"
+          aria-label="초대 코드 복사"
+          onClick={() => navigator.clipboard?.writeText(room.code).catch(() => {})}
+        >
+          📋
+        </button>
+      </div>
 
-      <section className="card" style={{ flex: 1 }}>
-        <strong>참가자 {room.players.length}/4</strong>
-        <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0' }}>
-          {room.players.map((p) => (
-            <li
-              key={p.userId}
-              className="row"
-              style={{ padding: '10px 0', borderBottom: '1px solid var(--sand)' }}
-            >
-              <Avatar appearance={p.appearance} size={32} />
-              <span style={{ fontWeight: 600 }}>{p.nickname}</span>
-              {p.isHost && <span className="muted">방장</span>}
-              <div className="spacer" />
-              {!p.connected && <span className="muted">연결 끊김</span>}
-              {p.isHost ? null : (
-                <span style={{ color: p.isReady ? 'var(--sage)' : 'var(--ink-dim)', fontWeight: 600 }}>
-                  {p.isReady ? '준비 완료' : '대기 중'}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <p className="muted" style={{ margin: '-4px 2px 0' }}>
+        {CATEGORY_LABEL[room.settings.category]} · {room.settings.totalRounds}문제 · {room.players.length}/4
+      </p>
+
+      {/* 참가자 2×2 카드 */}
+      <div className="room__grid">
+        {room.players.map((p) => (
+          <div key={p.userId} className={`room__player ${p.connected ? '' : 'is-out'}`}>
+            <Avatar appearance={p.appearance} size={56} />
+            <span className="room__nn">
+              {p.nickname}
+              {p.isHost && <span className="badge" style={{ marginLeft: 4 }}>방장</span>}
+            </span>
+            {!p.connected ? (
+              <span className="room__st">연결 끊김</span>
+            ) : p.isHost ? (
+              <span className="room__st is-ready">준비 완료 ✓</span>
+            ) : (
+              <span className={`room__st ${p.isReady ? 'is-ready' : ''}`}>
+                {p.isReady ? '준비 완료 ✓' : '대기 중'}
+              </span>
+            )}
+          </div>
+        ))}
+        {Array.from({ length: emptySlots }, (_, i) => (
+          <div key={`empty-${i}`} className="room__player is-empty">+</div>
+        ))}
+      </div>
+
+      <div className="spacer" />
 
       {isHost ? (
         <>
           <div className="row">
+            <button
+              type="button"
+              className="btn btn--ghost"
+              style={{ flex: 1 }}
+              disabled={!canStartSolo}
+              onClick={actions.startSolo}
+            >
+              혼자하기
+            </button>
             <button
               type="button"
               className="btn"
@@ -68,23 +93,13 @@ export function Room({ room, user, actions }) {
               disabled={!canStart}
               onClick={actions.startGame}
             >
-              게임 시작
-            </button>
-            {/* 상대를 기다리지 않고 바로 연습하고 싶을 때. 방에 나 혼자일 때만 켜진다 */}
-            <button
-              type="button"
-              className="btn btn--mustard"
-              style={{ flex: 1 }}
-              disabled={!canStartSolo}
-              onClick={actions.startSolo}
-            >
-              혼자하기
+              게임 시작 ▶
             </button>
           </div>
           {!canStart && (
-            <p className="muted" style={{ textAlign: 'center', margin: 0 }}>
+            <p className="muted" style={{ textAlign: 'center', margin: 0, fontSize: 13 }}>
               {room.players.length < 2
-                ? '2명 이상 모여야 시작할 수 있어요 — 혼자 해보려면 오른쪽 버튼을 누르세요'
+                ? '2명 이상 모여야 시작할 수 있어요 — 혼자 해보려면 혼자하기를 누르세요'
                 : '전원이 준비해야 시작할 수 있어요'}
             </p>
           )}

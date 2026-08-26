@@ -1,6 +1,11 @@
+/* 게임 플레이 — 앱에서 유일한 다크 화면. 몰입을 위해서다 (목업 기준) */
 .play {
-  gap: 10px;
+  gap: 8px;
+  background: linear-gradient(180deg, var(--dark-bg) 0%, var(--dark-bg-2) 100%);
+  color: #fff;
 }
+
+/* ── 스코어보드 ───────────────────────────────────────────────────────────── */
 
 .play__scores {
   display: flex;
@@ -12,15 +17,26 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 2px;
   padding: 8px 4px;
-  border-radius: 10px;
-  background: var(--card);
-  border: 1px solid var(--sand);
+  border-radius: 12px;
+  background: var(--dark-fill);
+  border: 1.5px solid transparent;
   min-width: 0;
 }
 
 .play__score.is-me {
-  border-color: var(--terracotta);
+  border-color: var(--primary);
+}
+
+/* 선두는 금색 — 누가 이기고 있는지 한눈에 */
+.play__score.is-lead {
+  border-color: var(--gold);
+  background: rgba(245, 179, 1, 0.14);
+}
+
+.play__score.is-lead strong {
+  color: var(--gold);
 }
 
 .play__score.is-out {
@@ -28,8 +44,12 @@
 }
 
 .play__nick {
-  font-size: 12px;
-  color: var(--ink-sub);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -37,25 +57,56 @@
 }
 
 .play__score strong {
-  font-size: 20px;
-  font-family: var(--font-title), var(--font-ui);
+  font-size: 15px;
+  font-weight: 800;
 }
 
+/* ── 라운드 · 타이머 ──────────────────────────────────────────────────────── */
+
 .play__timer {
-  font-family: var(--font-title), var(--font-ui);
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--ink-sub);
+  font-size: 22px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--success);
+}
+
+.play__timer.is-warn {
+  color: var(--gold);
 }
 
 .play__timer.is-urgent {
-  color: var(--terracotta);
+  color: var(--danger);
 }
+
+/* 남은 시간 게이지 — 초록에서 빨강으로 줄어든다 */
+.play__track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.play__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--success);
+  transition: width 0.2s linear, background 0.3s;
+}
+
+.play__fill.is-warn {
+  background: var(--gold);
+}
+
+.play__fill.is-urgent {
+  background: var(--danger);
+}
+
+/* ── 문제 · 입력 ──────────────────────────────────────────────────────────── */
 
 .play__stage {
   display: flex;
   justify-content: center;
-  padding: 18px 0;
+  padding: 14px 0 6px;
 }
 
 .play__input {
@@ -63,41 +114,73 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--card);
-  border: 1px solid var(--sand-border);
-  border-radius: var(--radius);
-  font-family: var(--font-title), var(--font-ui);
+  background: var(--dark-fill);
+  border: 1.5px solid var(--dark-line);
+  border-radius: 16px;
   font-size: 30px;
-  letter-spacing: 2px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #fff;
 }
 
 .play__placeholder {
-  color: var(--ink-dim);
-  font-family: var(--font-ui);
-  font-size: 16px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 15px;
   letter-spacing: 0;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .play__notice {
   min-height: 20px;
   text-align: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--terracotta);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+/* ── 패스 · 리액션 ────────────────────────────────────────────────────────── */
+
+/* 다크 화면 위의 버튼은 반투명 흰색이다 — .btn(파랑 채움)을 덮어쓴다 */
+.play .btn--ghost,
+.play .btn--mustard {
+  background: var(--dark-fill);
+  color: #fff;
+  border: 1px solid var(--dark-line);
+  min-height: 42px;
+  border-radius: 999px;
+  font-size: 13px;
+  padding: 0 16px;
+}
+
+.play .btn--mustard {
+  background: rgba(245, 179, 1, 0.2);
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .play__reaction {
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  padding: 4px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--dark-line);
+  border-radius: 999px;
+  background: var(--dark-fill);
+  font-size: 18px;
+  padding: 0;
   cursor: pointer;
+}
+
+.play__reaction:active {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .play__last {
   text-align: center;
   margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.play__last strong {
+  color: #fff;
 }
 
 /* 라운드 줄 오른쪽 아이콘 버튼 (소리·나가기) */
@@ -109,9 +192,14 @@
   font-size: 17px;
   line-height: 1;
   cursor: pointer;
-  color: var(--ink-sub);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .play__icon:active {
   transform: scale(0.9);
+}
+
+/* 다크 화면에서는 .muted도 밝게 */
+.play .muted {
+  color: rgba(255, 255, 255, 0.6);
 }

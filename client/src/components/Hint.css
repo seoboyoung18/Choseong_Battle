@@ -1,3 +1,5 @@
+/* 힌트 타일 — 다크 게임 화면 위의 흰 타일. 자모 유형별 색은 글자 색으로 지킨다:
+   자음=파랑, 모음=골드, 공개 글자=잉크. 어느 화면에서든 같은 유형은 같은 색이다 */
 .hint {
   display: flex;
   gap: 10px;
@@ -9,40 +11,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 76px;
-  border-radius: 14px;
-  font-family: var(--font-title), var(--font-ui);
-  font-size: 38px;
-  font-weight: 700;
-  color: #fff;
+  width: 72px;
+  height: 90px;
+  border-radius: 18px;
+  background: #fff;
+  font-family: var(--font-title);
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
 }
 
 .hint__slot--cho {
-  background: var(--terracotta);
-  box-shadow: 0 4px 0 var(--terracotta-dark);
+  color: var(--primary);
 }
 
 .hint__slot--jung {
-  background: var(--mustard);
-  box-shadow: 0 4px 0 var(--mustard-dark);
+  color: var(--gold-dark);
 }
 
 .hint__slot--open {
-  background: var(--ink);
-  box-shadow: 0 4px 0 #241b15;
+  color: var(--text);
+  font-size: 38px;
 }
 
 .hint__slot--blank {
-  background: var(--sand);
-  border: 2px dashed var(--sand-border);
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px dashed var(--dark-line);
   box-shadow: none;
 }
 
 @media (max-width: 380px) {
   .hint__slot {
-    width: 54px;
-    height: 66px;
-    font-size: 32px;
+    width: 60px;
+    height: 76px;
+    font-size: 36px;
   }
 }

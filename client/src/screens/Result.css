@@ -1,0 +1,93 @@
+.result__hero {
+  text-align: center;
+  padding: 12px 0 0;
+}
+
+.result__h2 {
+  font-size: 30px;
+  font-weight: 900;
+  margin: 0;
+}
+
+.result__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+
+/* 1위는 금색으로 확실히 다르게 */
+.result__item.is-first {
+  background: linear-gradient(90deg, var(--gold-soft) 0%, #fffbed 100%);
+  border-color: var(--gold);
+}
+
+.result__item.is-me .result__nn {
+  color: var(--primary-dark);
+}
+
+.result__medal {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+  background: var(--muted-bg);
+  color: var(--text-2);
+  flex-shrink: 0;
+}
+
+.result__medal.is-gold {
+  background: var(--gold);
+  color: #fff;
+}
+
+.result__medal.is-silver {
+  background: #c0c6ce;
+  color: #fff;
+}
+
+.result__medal.is-bronze {
+  background: #b87333;
+  color: #fff;
+}
+
+.result__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.result__nn {
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result__sp {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.result__w {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.result__item.is-first .result__w {
+  color: var(--gold-ink);
+}
