@@ -16,7 +16,7 @@
 
 const STORAGE_KEY = 'cb.sound';
 
-/** [주파수(Hz), 시작 오프셋(초), 길이(초)] */
+/** [주파수(Hz), 시작 오프셋(초), 길이(초), 크기(선택 — 기본 0.18)] */
 const SOUNDS = {
   /** 정답 — 짧게 올라가는 두 음 */
   correct: [[880, 0, 0.08], [1320, 0.07, 0.12]],
@@ -30,6 +30,8 @@ const SOUNDS = {
   tick: [[1200, 0, 0.05]],
   /** 파츠 해금 */
   unlock: [[523, 0, 0.1], [659, 0.09, 0.1], [784, 0.18, 0.1], [1047, 0.27, 0.26]],
+  /** 타자 — 아주 짧고 조용한 클릭. 연타되는 소리라 크면 금방 피곤하다 */
+  key: [[1750, 0, 0.028, 0.06]],
 };
 
 /** @type {AudioContext | null} 첫 사용자 조작 때 만든다 */
@@ -91,7 +93,7 @@ export function play(name) {
   if (ctx.state === 'suspended') return; // 백그라운드 — 밀린 소리가 나중에 터지면 안 된다
 
   const now = ctx.currentTime;
-  for (const [freq, offset, duration] of notes) {
+  for (const [freq, offset, duration, peak = 0.18] of notes) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
@@ -101,7 +103,7 @@ export function play(name) {
     // 딱딱 끊기면 클릭 잡음이 나므로 짧게 올렸다 부드럽게 내린다
     const start = now + offset;
     gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.18, start + 0.012);
+    gain.gain.linearRampToValueAtTime(peak, start + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
     osc.connect(gain).connect(ctx.destination);

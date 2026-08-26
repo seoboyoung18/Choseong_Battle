@@ -14,6 +14,7 @@ import { KEY_BACKSPACE, KEY_SUBMIT, Keyboard, useKeyFlash } from '../components/
 import { CATEGORY_LABEL, CATEGORY_ORDER, PRACTICE_TIERS, PRACTICE_TIER_ORDER } from '../constants.js';
 import { HangulComposer, isComplete } from '../hangul/automata.js';
 import { jamoFromEvent } from '../hangul/keyboard.js';
+import { play } from '../sound.js';
 import { useCountdown } from '../useGame.js';
 import './Practice.css';
 
@@ -133,12 +134,14 @@ function Run({ state, report, actions }) {
       if (e.code === 'Enter' || e.code === 'NumpadEnter') {
         e.preventDefault();
         flashKey(KEY_SUBMIT);
+        play('key');
         submit();
         return;
       }
       if (e.code === 'Backspace') {
         e.preventDefault();
         flashKey(KEY_BACKSPACE);
+        play('key');
         backspace();
         return;
       }
@@ -150,6 +153,7 @@ function Run({ state, report, actions }) {
       if (jamo) {
         e.preventDefault();
         flashKey(jamo);
+        play('key');
         composerRef.current.insert(jamo);
         sync();
       }

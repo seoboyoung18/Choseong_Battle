@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { LAYOUT, SHIFT_MAP } from '../hangul/keyboard.js';
+import { play } from '../sound.js';
 import './Keyboard.css';
 
 /** flash에 쓰는 특수 키 토큰 (자모와 겹치지 않는 값) */
@@ -36,8 +37,21 @@ export function useKeyFlash() {
 }
 
 export function Keyboard({ onJamo, onBackspace, onSubmit, shift, onShift, disabled, flash }) {
+  // 화면 키보드를 눌렀을 때의 타자 소리. 물리 키보드 소리는 각 화면의
+  // keydown 핸들러가 낸다 — 두 경로가 겹치지 않아 이중으로 나지 않는다.
   const press = (jamo) => {
+    play('key');
     onJamo(shift ? (SHIFT_MAP.get(jamo) ?? jamo) : jamo);
+  };
+
+  const pressBackspace = () => {
+    play('key');
+    onBackspace();
+  };
+
+  const pressSubmit = () => {
+    play('key');
+    onSubmit();
   };
 
   // 물리로 ㄲ을 쳤으면 ㄱ 자리 키가 반짝여야 한다 — 시프트 변형까지 대조한다
@@ -53,7 +67,7 @@ export function Keyboard({ onJamo, onBackspace, onSubmit, shift, onShift, disabl
             <button
               type="button"
               className={`kb__key kb__key--fn ${shift ? 'is-on' : ''}`}
-              onClick={onShift}
+              onClick={() => { play('key'); onShift(); }}
               disabled={disabled}
               aria-pressed={shift}
             >
@@ -80,7 +94,7 @@ export function Keyboard({ onJamo, onBackspace, onSubmit, shift, onShift, disabl
             <button
               type="button"
               className={`kb__key kb__key--fn ${flash?.value === KEY_BACKSPACE ? 'is-flash' : ''}`}
-              onClick={onBackspace}
+              onClick={pressBackspace}
               disabled={disabled}
               aria-label="지우기"
             >
@@ -93,7 +107,7 @@ export function Keyboard({ onJamo, onBackspace, onSubmit, shift, onShift, disabl
       <button
         type="button"
         className={`kb__submit ${flash?.value === KEY_SUBMIT ? 'is-flash' : ''}`}
-        onClick={onSubmit}
+        onClick={pressSubmit}
         disabled={disabled}
       >
         입력

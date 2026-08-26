@@ -1,7 +1,16 @@
-/* 게임 플레이 — 앱에서 유일한 다크 화면. 몰입을 위해서다 (목업 기준) */
+/* 게임 플레이 — 앱에서 유일한 다크 화면. 몰입을 위해서다 (목업 기준)
+ *
+ * 배경 이미지: client/public/play-bg.jpg 를 두면 자동으로 쓰인다.
+ * 이미지가 없으면 404 레이어만 비고 맨 아래 그라데이션이 그대로 보인다.
+ * 어두운 반투명 덮개를 항상 깔아 어떤 이미지든 흰 글자가 읽히게 한다.
+ * 권장 크기: 세로 1080×2340 이상 (9:19.5), JPG/WebP 500KB 이하.
+ */
 .play {
   gap: 8px;
-  background: linear-gradient(180deg, var(--dark-bg) 0%, var(--dark-bg-2) 100%);
+  background:
+    linear-gradient(180deg, rgba(11, 21, 48, 0.5) 0%, rgba(11, 21, 48, 0.68) 100%),
+    url('/play-bg.jpg') center / cover no-repeat,
+    linear-gradient(180deg, var(--dark-bg) 0%, var(--dark-bg-2) 100%);
   color: #fff;
 }
 

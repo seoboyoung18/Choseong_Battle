@@ -1,15 +1,12 @@
-/* 2벌식 키보드 — 다크 게임 화면 하단에만 쓰인다 (게임·연습 플레이) */
+/* 2벌식 키보드 — 다크 게임 화면 하단에 뜨는 밝은 키보드 (iOS 라이트 키보드 느낌) */
 .kb {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 10px 2px 6px;
   margin: 0 -16px calc(-1 * max(16px, env(safe-area-inset-bottom)));
-  padding-left: 8px;
-  padding-right: 8px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
-  background: var(--dark-kb);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 8px max(12px, env(safe-area-inset-bottom));
+  background: #eef1f6;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .kb__row {
@@ -24,19 +21,23 @@
   height: 46px;
   border: none;
   border-radius: 8px;
-  background: #e5e8ee;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.18);
   color: #111827;
   font-family: inherit;
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.1s ease, transform 0.05s ease;
+  transition: background 0.08s ease, transform 0.05s ease;
 }
 
-.kb__key:active:not(:disabled) {
-  background: #c9cfda;
+/* 눌림 — 손으로 누르든 물리 키보드로 치든 노랗게 */
+.kb__key:active:not(:disabled),
+.kb__key.is-flash {
+  background: #ffd644;
+  color: #111827;
   transform: translateY(1px);
+  box-shadow: 0 0 0 rgba(16, 24, 40, 0.18);
 }
 
 .kb__key:disabled {
@@ -47,21 +48,23 @@
 .kb__key--fn {
   /* 3글자 라벨('쌍자음')이 두 줄로 접히지 않을 만큼은 넓어야 한다 */
   flex: 1.8;
-  background: #8994a8;
+  background: #d4dae3;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  color: #fff;
+  color: #4b5563;
 }
 
-.kb__key--fn:active:not(:disabled) {
-  background: #7a8499;
+.kb__key--fn:active:not(:disabled),
+.kb__key--fn.is-flash {
+  background: #ffd644;
+  color: #111827;
 }
 
 .kb__key--fn.is-on {
-  background: #fff;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
-  color: var(--primary-dark);
+  background: var(--primary);
+  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.18);
+  color: #fff;
 }
 
 .kb__submit {
@@ -75,31 +78,18 @@
   font-size: 17px;
   font-weight: 800;
   cursor: pointer;
-  transition: background 0.1s ease, transform 0.05s ease;
+  transition: background 0.08s ease, transform 0.05s ease;
 }
 
-.kb__submit:active:not(:disabled) {
-  background: var(--primary-dark);
+.kb__submit:active:not(:disabled),
+.kb__submit.is-flash {
+  background: #ffd644;
+  color: #111827;
   transform: translateY(1px);
 }
 
 .kb__submit:disabled {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.4);
+  background: #d4dae3;
+  color: #9aa1ac;
   cursor: default;
-}
-
-/* 물리 키보드 입력을 되비추는 눌림 상태 — :active와 같은 모양 */
-.kb__key.is-flash {
-  background: #c9cfda;
-  transform: translateY(1px);
-}
-
-.kb__key--fn.is-flash {
-  background: #6f7a8f;
-}
-
-.kb__submit.is-flash {
-  background: var(--primary-dark);
-  transform: translateY(1px);
 }

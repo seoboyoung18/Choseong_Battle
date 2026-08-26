@@ -85,12 +85,14 @@ export function Play({ state, user, actions }) {
       if (e.code === 'Enter' || e.code === 'NumpadEnter') {
         e.preventDefault();
         flashKey(KEY_SUBMIT);
+        play('key');
         submit();
         return;
       }
       if (e.code === 'Backspace') {
         e.preventDefault();
         flashKey(KEY_BACKSPACE);
+        play('key');
         backspace();
         return;
       }
@@ -102,6 +104,7 @@ export function Play({ state, user, actions }) {
       if (jamo) {
         e.preventDefault();
         flashKey(jamo);
+        play('key');
         composerRef.current.insert(jamo);
         sync();
       }
