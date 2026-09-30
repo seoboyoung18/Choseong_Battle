@@ -28,7 +28,7 @@ export const config = {
   },
 
   /** 앱인토스 SDK 3.x CORS 허용 목록 — 실서비스 · QR 테스트 도메인 */
-  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
+  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://localhost:5174')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),

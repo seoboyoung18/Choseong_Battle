@@ -1,0 +1,57 @@
+# 로컬 개발용 인프라 — PostgreSQL + Redis.
+#
+#   docker compose up -d      띄우기
+#   docker compose ps         상태 확인
+#   docker compose down       내리기 (데이터는 남는다)
+#   docker compose down -v    데이터까지 지우기
+#
+# 접속 정보는 server/.env.example의 기본값과 일부러 같게 맞췄다.
+# cp server/.env.example server/.env 만 하면 바로 붙는다.
+#
+# 호스트 포트가 5433·6380인 이유: 이 PC에서 다른 프로젝트가 표준 포트
+# 5432·6379를 이미 쓰고 있다. 컨테이너 안은 표준 포트 그대로다.
+# 표준 포트를 쓰고 싶으면 여기와 server/.env를 같이 바꾼다.
+#
+# 운영에 쓰라고 만든 파일이 아니다 — 비밀번호가 평문이고 포트가 열려 있다.
+
+services:
+  postgres:
+    # 스키마(db/schema.sql)가 PostgreSQL 18 기준이라 버전을 고정한다
+    image: postgres:18-alpine
+    container_name: choseong-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ssafy
+      POSTGRES_DB: choseong_battle
+      # 한글 정렬·비교를 위해 UTF-8로 초기화한다
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    ports:
+      - '5433:5432'
+    volumes:
+      # PostgreSQL 18부터 마운트 지점이 바뀌었다 — /var/lib/postgresql/data가
+      # 아니라 한 단계 위인 /var/lib/postgresql에 걸어야 한다. 이미지가 그 아래에
+      # 메이저 버전별 디렉터리를 만들어 pg_upgrade를 쉽게 하기 위해서다.
+      # 17 이하 관례대로 걸면 컨테이너가 기동에 실패한다.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      # db:migrate를 healthy 이후에 돌리면 "아직 안 떴다" 실패를 피할 수 있다
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d choseong_battle']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: choseong-redis
+    ports:
+      - '6380:6379'
+    # 룸 상태·선착 락은 재시작하면 어차피 무효라 영속화하지 않는다
+    command: redis-server --save '' --appendonly no
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
