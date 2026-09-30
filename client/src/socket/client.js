@@ -8,7 +8,8 @@
 
 import { io } from 'socket.io-client';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? 'http://localhost:3000';
+/** 게임 서버 주소. 소켓뿐 아니라 REST(방 목록)도 이 주소를 쓴다 */
+export const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? 'http://localhost:3000';
 
 /**
  * @param {{ userId: string|number, nickname: string }} user

@@ -1,6 +1,6 @@
-/* ── 온보딩 — 파란 그라데이션 풀스크린 ────────────────────────────────────── */
+/* ── 온보딩 — 테라코타 그라데이션 풀스크린 ────────────────────────────────────── */
 .onboard {
-  background: linear-gradient(180deg, #4f8ff7 0%, #3b82f6 50%, #1d6be8 100%);
+  background: linear-gradient(180deg, #d9773f 0%, #c4622d 50%, #96461c 100%);
   color: #fff;
   padding-top: max(48px, env(safe-area-inset-top));
 }
@@ -72,14 +72,14 @@
   border-color: rgba(255, 255, 255, 0.55);
 }
 
-/* 파란 배경 위라 시작 버튼은 흰색이다 */
+/* 테라코타 배경 위라 시작 버튼은 흰색이다 */
 .onboard__start {
   background: #fff;
   color: var(--primary-dark);
 }
 
 .onboard__start:active:not(:disabled) {
-  background: #f0f4fa;
+  background: #f3e9dc;
 }
 
 .onboard__start:disabled {
@@ -217,4 +217,128 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--primary);
+}
+
+/* ── 공개 방 목록 ─────────────────────────────────────────────────────────── */
+.rooms__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+
+.rooms__refresh {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 4px 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.rooms__refresh:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
+
+.rooms__empty {
+  margin: 10px 0 0;
+  padding: 16px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  font-size: 13px;
+  text-align: center;
+}
+
+.rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rooms__item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.rooms__row {
+  appearance: none;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rooms__row:active {
+  background: var(--muted-bg);
+}
+
+.rooms__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rooms__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  /* 방 이름이 길어도 인원수를 밀어내지 않는다 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rooms__meta {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.rooms__count {
+  flex: none;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.rooms__max {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+.rooms__pw {
+  padding: 0 14px 12px;
+}
+
+.rooms__pw .input {
+  height: 40px;
+  font-size: 14px;
+}
+
+/* 방 만들기·입장 실패 알림 — 잠깐 떴다 사라진다 */
+.rooms__fail {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
 }

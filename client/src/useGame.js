@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { REJECT_MESSAGE, connect } from './socket/client.js';
+import { REJECT_MESSAGE, SERVER_URL, connect } from './socket/client.js';
 import { play } from './sound.js';
 
 const initialState = {
@@ -33,6 +33,10 @@ const initialState = {
   showMyPage: false,
   showPractice: false,
   practice: { question: null, streak: 0, result: null, records: null, notice: null },
+  // 공개 방 목록. 소켓이 아니라 REST로 받는다 — 방이 생기고 사라지는 걸
+  // 실시간으로 밀어 줄 만큼 중요한 정보가 아니라, 볼 때 한 번 받으면 된다.
+  // list가 null이면 아직 한 번도 못 받은 상태다 (빈 배열과 구분해야 한다).
+  rooms: { list: null, loading: false, error: false },
 };
 
 export function useGame() {
@@ -206,9 +210,27 @@ export function useGame() {
     socketRef.current?.emit(event, payload);
   }, []);
 
+  /**
+   * 공개 방 목록을 받아온다. 방이 없으면 빈 배열이고, 실패하면 error를 세운다 —
+   * 빈 목록("아직 방이 없어요")과 실패("불러오지 못했어요")는 다른 말이어야 한다.
+   */
+  const loadRooms = useCallback(async () => {
+    setState((prev) => ({ ...prev, rooms: { ...prev.rooms, loading: true, error: false } }));
+    try {
+      const res = await fetch(`${SERVER_URL}/api/v1/rooms`);
+      if (!res.ok) throw new Error(String(res.status));
+      const { rooms: list } = await res.json();
+      setState((prev) => ({ ...prev, rooms: { list, loading: false, error: false } }));
+    } catch {
+      setState((prev) => ({ ...prev, rooms: { ...prev.rooms, loading: false, error: true } }));
+    }
+  }, []);
+
   const actions = {
     createRoom: (settings) => emit('room.create', settings),
-    joinRoom: (code) => emit('room.join', { code }),
+    /** @param {string} code @param {string|null} [password] 잠긴 방이면 필요하다 */
+    joinRoom: (code, password = null) => emit('room.join', { code, password }),
+    loadRooms,
     leaveRoom: () => {
       emit('room.leave');
       setState((prev) => ({ ...initialState, connected: prev.connected, me: prev.me }));

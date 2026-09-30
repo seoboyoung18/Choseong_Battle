@@ -26,6 +26,25 @@ import { loadDictionary } from './words/dictionary.js';
 const app = express();
 app.use(express.json());
 
+/**
+ * REST CORS.
+ *
+ * Socket.IO는 자체 cors 옵션으로 막아 두지만 그건 소켓 핸드셰이크에만 걸린다.
+ * 브라우저가 다른 오리진(개발 중에는 Vite dev 서버)에서 /api/v1/* 를 fetch 하면
+ * 이 헤더가 없어 막히므로, 소켓과 같은 허용 목록을 여기에도 적용한다.
+ *
+ * 목록에 없는 오리진에는 헤더를 붙이지 않는다 — 브라우저가 알아서 막는다.
+ */
+app.use((req, res, next) => {
+  const { origin } = req.headers;
+  if (origin && config.corsOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    // 오리진마다 응답이 다르므로 캐시가 섞이지 않게 한다
+    res.setHeader('Vary', 'Origin');
+  }
+  next();
+});
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: config.corsOrigins, credentials: true },

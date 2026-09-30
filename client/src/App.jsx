@@ -139,6 +139,8 @@ export default function App() {
       actions={actions}
       matching={state.matching}
       connected={state.connected}
+      rooms={state.rooms}
+      notice={state.notice}
     />
   );
 }
