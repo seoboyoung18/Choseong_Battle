@@ -1,52 +1,56 @@
 /**
- * 디자인 토큰 — 토스 미니앱 스타일 (젠스파크 목업 기준).
+ * 디자인 토큰 — 웜 팔레트 (README 「디자인」 절이 기준).
  *
- * 밝은 배경 + 흰 카드 + 파랑 포인트. 게임 플레이 화면만 다크 네이비다.
+ * 웜 크림 배경 + 오프화이트 카드 + 테라코타 포인트. 게임 플레이 화면만
+ * 다크인데, 네이비가 아니라 잉크를 어둡게 내린 웜 다크다.
  *
- * 옛 변수 이름(--terracotta, --sand, --ink…)을 새 팔레트의 별칭으로 남겨 두었다.
- * 웜 팔레트 시절 CSS가 그 이름을 그대로 참조하기 때문인데, 별칭만 바꾸면
- * 전 화면이 한 번에 재도색된다 — 파일마다 색을 고치는 것보다 훨씬 안전하다.
+ * 색에는 의미가 있다 — 자음=테라코타, 모음=머스타드, 자음+모음=세이지,
+ * 한 글자 공개=잉크, 빈칸=모래. 같은 자모 유형은 어느 화면에서든 같은 색이다.
+ *
+ * 역할 이름(--primary/--success/--gold)과 팔레트 이름(--terracotta/--sage/
+ * --mustard)을 둘 다 둔다. 화면 CSS가 두 이름을 섞어 쓰고 있어서인데, 값은
+ * 한 곳에만 있으므로 여기만 바꾸면 전 화면이 한 번에 재도색된다.
  */
 
 :root {
-  --bg: #f5f7fa;
-  --card: #ffffff;
+  --bg: #f3e9dc;
+  --card: #fffcf7;
 
-  --text: #111827;
-  --text-2: #4b5563;
-  --text-3: #9aa1ac;
-  --border: #e5e8ee;
-  --border-strong: #d1d6de;
-  --muted-bg: #f1f3f7;
+  --text: #3b2f27;
+  --text-2: #6e5b4c;
+  --text-3: #93806f;
+  --border: #e6d6c0;
+  --border-strong: #c6b096;
+  --muted-bg: #ede0ce;
 
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --primary-soft: #eaf2ff;
+  --primary: #c4622d;
+  --primary-dark: #96461c;
+  --primary-soft: #f7e3d5;
 
-  --success: #22c55e;
-  --success-dark: #1ba84e;
-  --success-soft: #e6f8ec;
-  --gold: #f5b301;
-  --gold-dark: #c78f00;
-  --gold-soft: #fff6da;
-  --gold-ink: #7a5300;
-  --danger: #ef4444;
-  --danger-soft: #feecec;
+  --success: #7a9471;
+  --success-dark: #5a7152;
+  --success-soft: #e9f0e6;
+  --gold: #d9a036;
+  --gold-dark: #ae7a1b;
+  --gold-soft: #fbf1da;
+  --gold-ink: #6e4e12;
+  --danger: #c4452d;
+  --danger-soft: #f8e5df;
 
-  /* 게임 플레이(다크) 전용 */
-  --dark-bg: #0f1d3e;
-  --dark-bg-2: #0b1530;
-  --dark-kb: #17264c;
+  /* 게임 플레이(다크) 전용 — 잉크 계열을 더 내린 웜 다크 */
+  --dark-bg: #2e241d;
+  --dark-bg-2: #1e1712;
+  --dark-kb: #3a2e25;
   --dark-line: rgba(255, 255, 255, 0.14);
   --dark-fill: rgba(255, 255, 255, 0.08);
 
   --radius: 20px;
   --radius-sm: 14px;
 
-  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-2: 0 6px 20px rgba(16, 24, 40, 0.08);
+  --shadow-1: 0 1px 2px rgba(59, 47, 39, 0.06);
+  --shadow-2: 0 6px 20px rgba(59, 47, 39, 0.1);
 
-  /* ── 옛 이름 별칭 (웜 팔레트 시절 CSS 호환) ─────────────────────────────── */
+  /* ── 팔레트 이름 (README 표기와 같은 이름) ──────────────────────────────── */
   --ink: var(--text);
   --ink-sub: var(--text-2);
   --ink-dim: var(--text-3);
@@ -58,11 +62,12 @@
   --mustard-dark: var(--gold-dark);
   --sand: var(--border);
   --sand-border: var(--border-strong);
-  --lift: 0px; /* 3D 버튼 입체는 새 디자인에 없다 */
+  /* 3D 입체 버튼의 두께 — 캐주얼 게임 특유의 촉감 */
+  --lift: 4px;
 
   --font-ui: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
     'Segoe UI', Roboto, system-ui, sans-serif;
-  /* 제목도 같은 서체의 굵은 웨이트를 쓴다 — 목업이 디스플레이 서체를 쓰지 않는다 */
+  /* 타이틀 서체(Jua)는 아직 안 붙였다 — 로컬 폰트 없이 UI 서체의 굵은 웨이트로 간다 */
   --font-title: var(--font-ui);
 }
 
@@ -144,48 +149,56 @@ body {
   white-space: nowrap;
   color: #fff;
   background: var(--primary);
+  /* 3D 입체 — 어두운 쪽이 버튼의 옆면이다 */
+  box-shadow: 0 var(--lift) 0 var(--primary-dark);
   cursor: pointer;
-  transition: transform 0.05s ease, background 0.15s ease;
+  transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.15s ease;
 }
 
+/* 누르면 옆면 두께만큼 내려앉는다 */
 .btn:active:not(:disabled) {
-  transform: scale(0.98);
-  background: var(--primary-dark);
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--primary-dark);
 }
 
 .btn:disabled {
   background: var(--muted-bg);
   color: var(--text-3);
+  box-shadow: 0 var(--lift) 0 var(--border-strong);
   cursor: default;
 }
 
 /* 긍정 액션 (방 만들기·준비 완료) */
 .btn--sage {
   background: var(--success);
+  box-shadow: 0 var(--lift) 0 var(--success-dark);
 }
 .btn--sage:active:not(:disabled) {
-  background: var(--success-dark);
+  box-shadow: 0 0 0 var(--success-dark);
 }
 
 /* 강조 보조 (패스·입장) */
 .btn--mustard {
   background: var(--gold);
   color: #fff;
+  box-shadow: 0 var(--lift) 0 var(--gold-dark);
 }
 .btn--mustard:active:not(:disabled) {
-  background: var(--gold-dark);
+  box-shadow: 0 0 0 var(--gold-dark);
 }
 
-/* 보조 — 흰 배경 + 테두리 */
+/* 보조 — 카드색 배경 + 모래 테두리 */
 .btn--ghost {
   background: var(--card);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 var(--lift) 0 var(--border-strong);
   font-weight: 600;
 }
 .btn--ghost:active:not(:disabled) {
-  transform: scale(0.98);
-  background: #fafbfd;
+  transform: translateY(var(--lift));
+  box-shadow: 0 0 0 var(--border-strong);
+  background: var(--bg);
 }
 
 .btn--sm {

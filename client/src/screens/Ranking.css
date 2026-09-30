@@ -47,13 +47,13 @@
 }
 
 .rank__stand.is-gold {
-  background: linear-gradient(180deg, #f5d065 0%, #f5b301 100%);
+  background: linear-gradient(180deg, #e8bc63 0%, #d9a036 100%);
   color: var(--gold-ink);
   height: 88px;
 }
 
 .rank__stand.is-silver {
-  background: linear-gradient(180deg, #dde1e7 0%, #c0c6ce 100%);
+  background: linear-gradient(180deg, #d8cbb8 0%, #b0a493 100%);
   color: var(--text-2);
   height: 64px;
 }

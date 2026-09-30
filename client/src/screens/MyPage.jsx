@@ -182,7 +182,7 @@ export function MyPage({ user, profile, notice, actions, onClose }) {
 
   return (
     <div className="screen mypage">
-      {/* 파란 헤더 — 캐릭터·닉네임·요약 (목업 기준) */}
+      {/* 테라코타 헤더 — 캐릭터·닉네임·요약 */}
       {!editing && (
         <div className="mypage__header">
           <div className="row">

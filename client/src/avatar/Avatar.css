@@ -16,5 +16,5 @@
 /* 마이페이지처럼 크게 보여주는 자리는 사각형 — 한복 자락까지 잘리지 않고 보인다 */
 .avatar--square {
   border-radius: 18px;
-  border-color: var(--border, #e5e8ee);
+  border-color: var(--border, #e6d6c0);
 }

@@ -31,7 +31,7 @@ export function ConfirmDialog({
         <strong className="confirm__title">{title}</strong>
         {body && <p className="confirm__body muted">{body}</p>}
 
-        {/* 안전한 쪽(계속하기)이 파랑 강조다 — 실수로 나가는 걸 막는 모달이니까 */}
+        {/* 안전한 쪽(계속하기)이 테라코타 강조다 — 실수로 나가는 걸 막는 모달이니까 */}
         <div className="row" style={{ marginTop: 20 }}>
           <button type="button" className="btn" style={{ flex: 1 }} onClick={onCancel}>
             {cancelLabel}

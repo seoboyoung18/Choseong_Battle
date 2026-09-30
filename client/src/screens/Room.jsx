@@ -29,7 +29,7 @@ export function Room({ room, user, actions }) {
         </button>
       </div>
 
-      {/* 초대 코드 — 파랑 연한 배경 카드 */}
+      {/* 초대 코드 — 연한 테라코타 배경 카드 */}
       <div className="room__invite">
         <span className="muted" style={{ fontWeight: 700 }}>초대코드</span>
         <strong className="room__code">{room.code}</strong>

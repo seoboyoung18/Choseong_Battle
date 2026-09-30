@@ -1,8 +1,8 @@
-/* ── 파란 헤더 — 화면 상단을 꽉 채운다 (목업 기준) ─────────────────────────── */
+/* ── 테라코타 헤더 — 화면 상단을 꽉 채운다 ─────────────────────────── */
 .mypage__header {
   margin: calc(-1 * max(16px, env(safe-area-inset-top))) -16px 0;
   padding: max(12px, env(safe-area-inset-top)) 20px 22px;
-  background: linear-gradient(180deg, #4f8ff7 0%, #3b82f6 100%);
+  background: linear-gradient(180deg, #d9773f 0%, #c4622d 100%);
   color: #fff;
 }
 
