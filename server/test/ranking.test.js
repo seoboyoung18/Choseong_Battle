@@ -8,6 +8,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { SKIP_REASON } from '../test-helpers/infra.js';
+
 import { PostgresStore, RANKING } from '../src/db/store.js';
 import { pool, query } from '../src/db/pool.js';
 import { weekOf } from '../src/ranking/week.js';
@@ -24,14 +26,14 @@ test.before(async () => {
   try {
     const { rows } = await query(`SELECT id FROM words WHERE text = '감자'`);
     if (rows.length === 0) {
-      console.warn('[test] 시드 단어가 없어 랭킹 테스트를 건너뜁니다 — npm run db:seed');
+      console.warn('[test] 시드 단어 없음 — 건너뜁니다. infra-available 테스트가 이 상황을 실패로 잡는다');
       return;
     }
     wordId = Number(rows[0].id);
     available = true;
     store = new PostgresStore({ db: { query }, dictionary: { idOf: () => wordId } });
   } catch (err) {
-    console.warn(`[test] PostgreSQL에 붙지 못해 랭킹 테스트를 건너뜁니다 — ${err.message}`);
+    console.warn(`[test] PostgreSQL 없음 — 건너뜁니다 (${err.message})`);
   }
 });
 
@@ -82,7 +84,7 @@ const refresh = () => store.refreshWeeklyRanking(RANGE);
 const read = (userId) => store.getWeeklyRanking({ week: RANGE.week, userId });
 
 test('3판 미만은 등재되지 않는다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const rookie = await makeUser('두판만');
   await playGame({ users: [{ user: rookie, roundWins: 9 }] });
@@ -103,7 +105,7 @@ test('3판 미만은 등재되지 않는다', async (t) => {
 });
 
 test('친구 방과 혼자하기는 집계에서 빠진다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const cheater = await makeUser('친구방장인');
   // 친구 방 10판을 몰아쳐도 랭킹에는 잡히지 않아야 한다
@@ -118,7 +120,7 @@ test('친구 방과 혼자하기는 집계에서 빠진다', async (t) => {
 });
 
 test('주간 상위 20판까지만 센다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const grinder = await makeUser('갈아넣기');
   // 25판: 승수 1인 판 20개 + 승수 10인 판 5개
@@ -138,7 +140,7 @@ test('주간 상위 20판까지만 센다', async (t) => {
 });
 
 test('다른 주의 판은 섞이지 않는다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const user = await makeUser('지난주');
   for (let i = 0; i < 3; i += 1) {
@@ -159,7 +161,7 @@ test('다른 주의 판은 섞이지 않는다', async (t) => {
 });
 
 test('진행 중인 판은 세지 않는다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const user = await makeUser('진행중');
   for (let i = 0; i < 3; i += 1) {
@@ -180,7 +182,7 @@ test('진행 중인 판은 세지 않는다', async (t) => {
 });
 
 test('동점이면 평균 정답 속도가 빠른 쪽이 위다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const fast = await makeUser('빠른손');
   const slow = await makeUser('느린손');
@@ -202,7 +204,7 @@ test('동점이면 평균 정답 속도가 빠른 쪽이 위다', async (t) => {
 });
 
 test('순위에서 빠진 사람은 다시 집계할 때 사라진다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const user = await makeUser('사라질사람');
   const games = [];
@@ -220,7 +222,7 @@ test('순위에서 빠진 사람은 다시 집계할 때 사라진다', async (t
 });
 
 test('상위 목록은 순위 순으로 내려온다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   await refresh();
   const board = await read();

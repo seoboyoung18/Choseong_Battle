@@ -6,6 +6,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { SKIP_REASON } from '../test-helpers/infra.js';
+
 import { createRedis } from '../src/redis/client.js';
 import {
   claimRoundWin,
@@ -34,7 +36,7 @@ test.before(async () => {
     available = true;
   } catch {
     available = false;
-    console.warn('[test] Redis에 붙지 못해 locks 테스트를 건너뜁니다 — redis-server를 띄우세요');
+    console.warn('[test] Redis 없음 — 건너뜁니다. infra-available 테스트가 이 상황을 실패로 잡는다');
   }
 });
 
@@ -52,7 +54,7 @@ async function cleanup(gameId) {
 }
 
 test('선착 락은 정확히 한 명만 통과시킨다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const gameId = nextGame();
   const params = { gameId, roundNo: 6, attemptNo: 1 };
 
@@ -64,7 +66,7 @@ test('선착 락은 정확히 한 명만 통과시킨다', async (t) => {
 });
 
 test('동시에 몰린 20건 중 승자는 하나뿐이다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const gameId = nextGame();
   const params = { gameId, roundNo: 1, attemptNo: 1 };
 
@@ -82,7 +84,7 @@ test('동시에 몰린 20건 중 승자는 하나뿐이다', async (t) => {
 });
 
 test('유찰로 교체된 출제는 새 락을 쓴다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const gameId = nextGame();
 
   assert.equal(await claimRoundWin(redis, { gameId, roundNo: 3, attemptNo: 1, userId: 1 }), true);
@@ -93,7 +95,7 @@ test('유찰로 교체된 출제는 새 락을 쓴다', async (t) => {
 });
 
 test('선착 락에는 TTL이 걸려 있다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const gameId = nextGame();
   await claimRoundWin(redis, { gameId, roundNo: 1, attemptNo: 1, userId: 7 });
 
@@ -104,7 +106,7 @@ test('선착 락에는 TTL이 걸려 있다', async (t) => {
 });
 
 test('패스는 인원수로 집계되고 취소할 수 있다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const gameId = nextGame();
   const params = { gameId, roundNo: 2, attemptNo: 1 };
 
@@ -119,7 +121,7 @@ test('패스는 인원수로 집계되고 취소할 수 있다', async (t) => {
 });
 
 test('게임 안에서 이미 쓴 단어를 기억한다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const gameId = nextGame();
 
   await markWordUsed(redis, gameId, '감자');
@@ -133,7 +135,7 @@ test('게임 안에서 이미 쓴 단어를 기억한다', async (t) => {
 });
 
 test('매칭 큐는 먼저 기다린 사람부터 꺼낸다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const category = `TEST_${process.pid}`;
   await redis.del(keys.matchQueue(category));
 
@@ -149,7 +151,7 @@ test('매칭 큐는 먼저 기다린 사람부터 꺼낸다', async (t) => {
 });
 
 test('매칭 큐에서 같은 유저를 두 번 꺼내지 않는다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const category = `TEST_RACE_${process.pid}`;
   await redis.del(keys.matchQueue(category));
 
@@ -169,7 +171,7 @@ test('매칭 큐에서 같은 유저를 두 번 꺼내지 않는다', async (t) 
 });
 
 test('대기 시간과 큐 이탈을 다룬다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const category = `TEST_WAIT_${process.pid}`;
   await redis.del(keys.matchQueue(category));
 
@@ -182,7 +184,7 @@ test('대기 시간과 큐 이탈을 다룬다', async (t) => {
 });
 
 test('룸 상태는 저장한 그대로 복구된다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const roomId = `test-room-${process.pid}`;
   const state = {
     code: 'AB12CD',

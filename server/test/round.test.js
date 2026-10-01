@@ -5,6 +5,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { SKIP_REASON } from '../test-helpers/infra.js';
+
 import { RULES } from '../src/config.js';
 import { GAME_STATUS, Game } from '../src/game/round.js';
 import { createRedis } from '../src/redis/client.js';
@@ -19,7 +21,7 @@ test.before(async () => {
     await redis.ping();
     available = true;
   } catch {
-    console.warn('[test] Redis에 붙지 못해 라운드 루프 테스트를 건너뜁니다');
+    console.warn('[test] Redis 없음 — 건너뜁니다. infra-available 테스트가 이 상황을 실패로 잡는다');
   }
 });
 
@@ -114,7 +116,7 @@ async function cleanup(game) {
 }
 
 test('게임을 시작하면 카운트다운과 첫 문제가 나간다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, emit } = createGame();
 
   await game.start();
@@ -135,7 +137,7 @@ test('게임을 시작하면 카운트다운과 첫 문제가 나간다', async 
 });
 
 test('첫 정답자가 라운드를 가져가고 1점을 얻는다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, emit } = createGame();
   await game.start();
 
@@ -154,7 +156,7 @@ test('첫 정답자가 라운드를 가져가고 1점을 얻는다', async (t) =
 });
 
 test('같은 라운드의 두 번째 정답은 ROUND_CLOSED로 거절된다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, emit } = createGame();
   await game.start();
 
@@ -171,7 +173,7 @@ test('같은 라운드의 두 번째 정답은 ROUND_CLOSED로 거절된다', as
 });
 
 test('오답은 본인에게만 거절 통보되고 라운드는 계속된다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, emit } = createGame();
   await game.start();
 
@@ -191,7 +193,7 @@ test('오답은 본인에게만 거절 통보되고 라운드는 계속된다', 
 });
 
 test('제한시간이 지나면 라운드 번호를 유지한 채 문제만 바뀐다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, clock, emit } = createGame();
   await game.start();
 
@@ -211,7 +213,7 @@ test('제한시간이 지나면 라운드 번호를 유지한 채 문제만 바�
 });
 
 test('일부만 패스하면 문제는 바뀌지 않고 인원수만 알린다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, emit } = createGame({ players: 3 });
   await game.start();
   const word = game.round.word;
@@ -231,7 +233,7 @@ test('일부만 패스하면 문제는 바뀌지 않고 인원수만 알린다',
 });
 
 test('접속자 전원이 패스하면 라운드 유지한 채 문제가 교체된다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, clock, emit } = createGame({ players: 3 });
   await game.start();
   const firstWord = game.round.word;
@@ -251,7 +253,7 @@ test('접속자 전원이 패스하면 라운드 유지한 채 문제가 교체�
 });
 
 test('패스를 취소하면 전원 패스가 성립하지 않는다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, emit } = createGame({ players: 2 });
   await game.start();
 
@@ -267,7 +269,7 @@ test('패스를 취소하면 전원 패스가 성립하지 않는다', async (t)
 });
 
 test('패스한 사람도 정답을 낼 수 있다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, emit } = createGame({ players: 3 });
   await game.start();
 
@@ -282,7 +284,7 @@ test('패스한 사람도 정답을 낼 수 있다', async (t) => {
 });
 
 test('이탈로 인원이 줄면 남은 인원 기준으로 전원 패스가 성립한다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, clock, emit } = createGame({ players: 3 });
   await game.start();
 
@@ -300,7 +302,7 @@ test('이탈로 인원이 줄면 남은 인원 기준으로 전원 패스가 성
 });
 
 test('모든 라운드를 마치면 승수 순으로 순위가 매겨진다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, clock, emit } = createGame({ totalRounds: 2, players: 2 });
   await game.start();
 
@@ -324,7 +326,7 @@ test('모든 라운드를 마치면 승수 순으로 순위가 매겨진다', as
 });
 
 test('1위가 동점이면 서든데스 한 라운드로 가린다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, clock, emit } = createGame({ totalRounds: 2, players: 2 });
   await game.start();
 
@@ -351,7 +353,7 @@ test('1위가 동점이면 서든데스 한 라운드로 가린다', async (t) =
 });
 
 test('서든데스에서 동점자가 아닌 사람의 제출은 막는다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, clock, emit } = createGame({ totalRounds: 2, players: 3 });
   await game.start();
 
@@ -371,7 +373,7 @@ test('서든데스에서 동점자가 아닌 사람의 제출은 막는다', asy
 });
 
 test('전원이 나가면 게임이 끝난다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game, emit } = createGame({ players: 2 });
   await game.start();
 
@@ -385,7 +387,7 @@ test('전원이 나가면 게임이 끝난다', async (t) => {
 });
 
 test('재접속하면 정답 없는 스냅샷으로 동기화한다', async (t) => {
-  if (!available) return t.skip('Redis 없음');
+  if (!available) return t.skip(SKIP_REASON.REDIS);
   const { game } = createGame({ players: 2 });
   await game.start();
 

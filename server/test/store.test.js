@@ -6,6 +6,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { SKIP_REASON } from '../test-helpers/infra.js';
+
 import { DEFAULT_APPEARANCE } from '../../shared/avatar.js';
 import { PostgresStore } from '../src/db/store.js';
 import { pool, query } from '../src/db/pool.js';
@@ -24,7 +26,8 @@ test.before(async () => {
   try {
     const { rows } = await query(`SELECT id FROM words WHERE text = $1`, [WORD]);
     if (rows.length === 0) {
-      console.warn('[test] 시드 단어가 없어 store 테스트를 건너뜁니다 — npm run db:seed');
+      // DB는 떠 있는데 단어가 없는 경우다. 원인이 다르니 안내도 달라야 한다.
+      console.warn('[test] 시드 단어 없음 — 건너뜁니다. infra-available 테스트가 이 상황을 실패로 잡는다');
       return;
     }
     wordId = Number(rows[0].id);
@@ -34,7 +37,7 @@ test.before(async () => {
       dictionary: { idOf: (text) => (text === WORD ? wordId : undefined) },
     });
   } catch (err) {
-    console.warn(`[test] PostgreSQL에 붙지 못해 store 테스트를 건너뜁니다 — ${err.message}`);
+    console.warn(`[test] PostgreSQL 없음 — 건너뜁니다 (${err.message})`);
   }
 });
 
@@ -56,7 +59,7 @@ async function makeUser(nickname) {
 }
 
 test('유저를 만들고, 다시 부르면 같은 유저를 준다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const tossId = `test-${process.pid}-upsert`;
   const first = await store.upsertUser({ tossUserId: tossId, nickname: '새벽감자' });
@@ -72,7 +75,7 @@ test('유저를 만들고, 다시 부르면 같은 유저를 준다', async (t) 
 });
 
 test('판을 열면 참가자 행이 함께 생긴다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const a = await makeUser('가');
   const b = await makeUser('나');
@@ -92,7 +95,7 @@ test('판을 열면 참가자 행이 함께 생긴다', async (t) => {
 });
 
 test('라운드 승리를 기록한다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const a = await makeUser('승자');
   const gameId = `g-${process.pid}-${++seq}`;
@@ -121,7 +124,7 @@ test('라운드 승리를 기록한다', async (t) => {
 });
 
 test('유찰은 같은 라운드 번호에 attempt만 올려 쌓인다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const a = await makeUser('유찰');
   const gameId = `g-${process.pid}-${++seq}`;
@@ -151,7 +154,7 @@ test('유찰은 같은 라운드 번호에 attempt만 올려 쌓인다', async (
 });
 
 test('거절된 제출도 전부 남는다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const a = await makeUser('제출');
   const gameId = `g-${process.pid}-${++seq}`;
@@ -186,7 +189,7 @@ test('거절된 제출도 전부 남는다', async (t) => {
 });
 
 test('게임을 닫으면 인별 결과가 확정된다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const a = await makeUser('일등');
   const b = await makeUser('꼴찌');
@@ -219,7 +222,7 @@ test('게임을 닫으면 인별 결과가 확정된다', async (t) => {
 });
 
 test('전적은 끝난 판만 센다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const a = await makeUser('전적');
 
@@ -242,7 +245,7 @@ test('전적은 끝난 판만 센다', async (t) => {
 });
 
 test('기록에 실패해도 예외를 던지지 않는다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   // 없는 게임에 라운드를 기록하려 해도 게임 루프가 깨지면 안 된다
   const result = await store.startRound({
@@ -263,7 +266,7 @@ test('기록에 실패해도 예외를 던지지 않는다', async (t) => {
 });
 
 test('프로필을 바꾸면 이름과 캐릭터가 함께 남는다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const me = await makeUser('바꾸기전');
   const look = { base: 'CAT', hanbok: 'SAGE', head: 'FLOWER', face: 'WINK', bg: 'MINT' };
@@ -278,14 +281,14 @@ test('프로필을 바꾸면 이름과 캐릭터가 함께 남는다', async (t)
 });
 
 test('새 계정은 기본 캐릭터를 입고 나온다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const me = await makeUser('새내기');
   assert.deepEqual(me.appearance, DEFAULT_APPEARANCE);
 });
 
 test('다시 접속해도 저장한 캐릭터가 따라온다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   // 접속 때 클라이언트가 캐릭터를 보내지 않으므로, upsert가 덮어쓰면 안 된다
   const tossId = `test-${process.pid}-relogin`;
@@ -300,7 +303,7 @@ test('다시 접속해도 저장한 캐릭터가 따라온다', async (t) => {
 });
 
 test('해금 진행도는 라운드 승·판 수·연습 최고 연속을 함께 센다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const me = await makeUser('진행도');
 
@@ -326,7 +329,7 @@ test('해금 진행도는 라운드 승·판 수·연습 최고 연속을 함께
 });
 
 test('최근 전적은 끝난 판만 최신 순으로 준다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const me = await makeUser('최근');
   const mate = await makeUser('동료');
@@ -371,7 +374,7 @@ test('최근 전적은 끝난 판만 최신 순으로 준다', async (t) => {
 });
 
 test('최근 전적은 요청한 개수까지만 준다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const me = await makeUser('많이한');
   for (let i = 0; i < 3; i += 1) {
@@ -387,7 +390,7 @@ test('최근 전적은 요청한 개수까지만 준다', async (t) => {
 });
 
 test('주차별 랭킹 이력은 최신 주부터 준다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const me = await makeUser('이력');
   await query(
@@ -404,7 +407,7 @@ test('주차별 랭킹 이력은 최신 주부터 준다', async (t) => {
 });
 
 test('단어 신고를 접수한다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   const me = await makeUser('신고자');
   const word = `테스트낱말${process.pid % 10}`.slice(0, 4);
@@ -423,7 +426,7 @@ test('단어 신고를 접수한다', async (t) => {
 });
 
 test('같은 사람이 같은 낱말을 또 신고해도 한 건만 남는다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   // 목록이 한 사람의 반복으로 부풀면 "몇 명이 억울했는가"를 못 읽는다
   const me = await makeUser('연타');
@@ -438,7 +441,7 @@ test('같은 사람이 같은 낱말을 또 신고해도 한 건만 남는다', 
 });
 
 test('다른 사람이 같은 낱말을 신고하면 따로 쌓인다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   // 몇 명이 겪었는지가 검수 우선순위의 근거다
   const a = await makeUser('첫째');
@@ -456,7 +459,7 @@ test('다른 사람이 같은 낱말을 신고하면 따로 쌓인다', async (t
 });
 
 test('처리된 신고는 다시 접수할 수 있다', async (t) => {
-  if (!available) return t.skip('DB 없음');
+  if (!available) return t.skip(SKIP_REASON.DB);
 
   // 한 번 기각된 낱말이라도 나중에 사정이 바뀔 수 있다.
   // 중복 방지는 PENDING인 건에만 걸린다.
