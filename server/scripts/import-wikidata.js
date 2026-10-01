@@ -5,6 +5,7 @@
  *   npm run db:import:wd                     인명(배우·가수)을 넣는다
  *   npm run db:import:wd -- --only film      다른 분류
  *   npm run db:import:wd -- --only all       전부
+ *   npm run db:import:wd -- --dry --dump .   새로 들어갈 낱말을 파일로 적는다
  *
  * ── 왜 판정 전용인가 ──────────────────────────────────────────────────────
  *
@@ -29,6 +30,8 @@
  * 끝나지 않는다 — 태그가 빠진 작품이 있을 수 있어 사람 검수가 필요하다.
  * 자세한 내용은 docs/proper-noun-mode.md 참고.
  */
+
+import { writeFileSync } from 'node:fs';
 
 import { pool } from '../src/db/pool.js';
 import { isHangulWord } from '../src/judge/hangul.js';
@@ -122,11 +125,28 @@ const CATEGORIES = Object.freeze({
     label: '포켓몬',
     where: `?x wdt:P31 ?t . ?t wdt:P279 wd:Q3966183 . ?x rdfs:label ?l .`,
   },
+  /**
+   * 영화 — 성인물을 거르는 2단 필터가 붙는다.
+   *
+   * ① **한국어 위키백과에 문서가 있을 것.** 누군가 글을 쓸 만큼 알려진 작품만
+   *    들인다. `음란기생`·`초대남`·`섹남섹녀`는 문서가 하나도 없어 여기서 걸린다.
+   *    등급이 있는 기초사전만 출제에 쓰는 것과 같은 발상이다 — "사람이 아는
+   *    것"을 외부 신호로 거른다. 6,031편 중 5,534편이 통과한다.
+   *
+   * ② **에로 영화 장르(Q599558)가 아닐 것.** ①만으로는 모자란다. 에로 태그
+   *    269편 중 146편은 위키백과 문서가 있다(`쌍화점`·`어우동`·`미인도`).
+   *    작품성과 무관하게 뺀다.
+   *
+   * 둘을 합쳐 5,413편. 자동 필터는 완전할 수 없어 넣기 전 목록을 사람이 보고,
+   * 놓친 것은 단어 신고(`word_reports`)가 받는다.
+   *
+   * 위키백과 패턴을 맨 앞에 두는 이유: 그쪽이 선택적이라 먼저 좁히면 질의가
+   * 60초에서 17초로 줄어든다.
+   */
   film: {
     label: '영화',
-    // 에로 영화는 제외한다. MINUS가 아니라 FILTER NOT EXISTS를 쓰는 이유는
-    // 장르가 여러 개 달린 작품도 하나라도 걸리면 빼야 하기 때문이다.
-    where: `?x wdt:P31 wd:Q11424 ; rdfs:label ?l .
+    where: `?art schema:isPartOf <https://ko.wikipedia.org/> ; schema:about ?x .
+            ?x wdt:P31 wd:Q11424 ; rdfs:label ?l .
             FILTER NOT EXISTS { ?x wdt:P136 wd:Q599558 }`,
   },
   character: {
@@ -155,6 +175,8 @@ function arg(name, fallback) {
 }
 
 const DRY = process.argv.includes('--dry');
+/** --dump <디렉터리>: 새로 들어갈 낱말을 파일로 적는다. 사람이 훑어보기 위한 것 */
+const DUMP = arg('dump', null);
 const ONLY = arg('only', 'person');
 
 /**
@@ -162,15 +184,103 @@ const ONLY = arg('only', 'person');
  * @param {string} key CATEGORIES 키
  * @returns {Promise<string[]>} 중복을 뺀 레이블
  */
+/**
+ * 자동 필터가 놓쳐서 사람이 보고 뺀 낱말.
+ *
+ * 영화 2단 필터(위키백과 문서 있음 + 에로 장르 아님)를 통과한 3,065개를 전부
+ * 훑어 나온 것들이다. 전부 위키백과에 문서가 있고 에로 영화로 분류돼 있지도
+ * 않지만, 제목 자체가 화면에 뜨면 곤란하다. 라운드를 이긴 낱말은 `round.won`으로
+ * 방 전체에 뿌려진다.
+ *
+ * 패턴으로 거르지 않는 이유는 DICTIONARY.md에 적힌 것과 같다 — `정사`를 넣으면
+ * `공정사회`가, `보지`를 넣으면 장원 감독의 `일보지요`가 함께 걸린다. 손 목록이
+ * 정확하다.
+ *
+ * 분류를 넓힐 때마다 `--dry --dump`로 목록을 뽑아 다시 훑어야 한다.
+ */
+const EXCLUDE = new Set([
+  '섹스돌', '섹스미션', '감옥정사', '매춘시대', '친구애인', '소녀경', '나신들',
+]);
+
+/** 초성 19개의 시작 음절. 마지막은 한글 음절 영역의 끝 다음 글자다 */
+const CHO_BOUNDS = [
+  '가', '까', '나', '다', '따', '라', '마', '바', '빠', '사',
+  '싸', '아', '자', '짜', '차', '카', '타', '파', '하', '힤',
+];
+
+/**
+ * 질의 한 번. 504(시간 초과)·429(너무 잦음)는 공개 엔드포인트에서 흔해서 다시 건다.
+ * 기다리는 시간을 늘려 가며 세 번까지.
+ */
+async function ask(query, attempts = 3) {
+  let last = 0;
+  for (let i = 1; i <= attempts; i += 1) {
+    const res = await fetch(`${ENDPOINT}?query=${encodeURIComponent(query)}`, { headers: HEADERS });
+    if (res.ok) return res.text();
+    last = res.status;
+    if (i < attempts) await new Promise((r) => setTimeout(r, 10_000 * i));
+  }
+  throw new Error(`위키데이터 질의 실패 (HTTP ${last}) — 세 번 시도했다. 잠시 뒤 다시 돌려라`);
+}
+
+/** XML 응답에서 한국어 레이블만 뽑아 모양 규칙으로 거른다 */
+function parseLabels(xml) {
+  return [...xml.matchAll(/<literal xml:lang='ko'>([^<]+)<\/literal>/g)]
+    .map((m) => m[1])
+    .filter((t) => isHangulWord(t) && t.length >= 2 && t.length <= 4);
+}
+
+/**
+ * 손 목록을 뺀다. **개수 검증이 끝난 뒤에** 부른다 —
+ * 먼저 빼면 받은 수가 COUNT보다 적어져 "잘렸다"고 잘못 판단한다.
+ */
+function dropExcluded(texts, key) {
+  const kept = texts.filter((t) => !EXCLUDE.has(t));
+  const dropped = texts.length - kept.length;
+  if (dropped) console.log(`[wd]   ${key}: 사람이 뺀 낱말 ${dropped}개 제외`);
+  return kept;
+}
+
+/**
+ * 한 분류를 받아 온다.
+ *
+ * **응답이 소리 없이 잘린다.** 영화는 실제로 5,413개인데 한 번에 받으면 2,754개만
+ * 돌아왔다. 그대로 넣으면 절반만 들어가고도 성공처럼 보인다.
+ *
+ * 그래서 COUNT를 먼저 받아 기준을 잡고, 모자라면 초성 구간으로 쪼개 다시 받는다.
+ * 그래도 모자라면 **넣지 않고 실패시킨다** — 반쪽짜리 사전이 조용히 들어가는 것보다
+ * 낫다.
+ *
+ * @param {string} key CATEGORIES 키
+ * @returns {Promise<string[]>} 중복을 뺀 레이블
+ */
 async function fetchLabels(key) {
   const { where } = CATEGORIES[key];
-  const query = `SELECT ?l WHERE { ${where} FILTER(lang(?l)='ko') ${SHAPE} }`;
-  const res = await fetch(`${ENDPOINT}?query=${encodeURIComponent(query)}`, { headers: HEADERS });
-  if (!res.ok) throw new Error(`위키데이터 질의 실패 (HTTP ${res.status}) — 잠시 뒤 다시 시도`);
+  const body = `{ ${where} FILTER(lang(?l)='ko') ${SHAPE} }`;
 
-  const xml = await res.text();
-  const found = [...xml.matchAll(/<literal xml:lang='ko'>([^<]+)<\/literal>/g)].map((m) => m[1]);
-  return [...new Set(found.filter((t) => isHangulWord(t) && t.length >= 2 && t.length <= 4))];
+  const countXml = await ask(`SELECT (COUNT(DISTINCT ?l) AS ?n) WHERE ${body}`);
+  const expected = Number(countXml.match(/<literal[^>]*>(\d+)<\/literal>/)?.[1] ?? 0);
+
+  const once = new Set(parseLabels(await ask(`SELECT ?l WHERE ${body}`)));
+  if (once.size >= expected) return dropExcluded([...once], key);
+
+  // 잘렸다. 초성 구간으로 쪼개면 한 번에 오는 양이 줄어 안 잘린다.
+  console.log(`[wd]   한 번에 ${once.size}/${expected}개만 와서 초성 구간으로 나눠 받는다`);
+  const all = new Set(once);
+  for (let i = 0; i < CHO_BOUNDS.length - 1; i += 1) {
+    const range = `FILTER(?l >= '${CHO_BOUNDS[i]}' && ?l < '${CHO_BOUNDS[i + 1]}')`;
+    const xml = await ask(`SELECT DISTINCT ?l WHERE { ${where} FILTER(lang(?l)='ko') ${SHAPE} ${range} }`);
+    parseLabels(xml).forEach((t) => all.add(t));
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+
+  if (all.size < expected) {
+    throw new Error(
+      `${key}: ${expected}개 중 ${all.size}개만 받았다. 응답이 잘렸다.\n` +
+        '  잠시 뒤 다시 시도하거나 구간을 더 잘게 나눠야 한다.',
+    );
+  }
+  return dropExcluded([...all], key);
 }
 
 /**
@@ -231,11 +341,19 @@ async function main() {
 
     if (DRY) {
       const { rows } = await pool.query(
-        `SELECT count(*)::int AS n FROM words WHERE text = ANY($1::text[])`,
+        `SELECT text FROM words WHERE text = ANY($1::text[])`,
         [texts],
       );
-      console.log(`[wd]   이미 있음 ${rows[0].n}개 · 새로 들어갈 것 ${texts.length - rows[0].n}개`);
+      const have = new Set(rows.map((r) => r.text));
+      const fresh = texts.filter((t) => !have.has(t));
+      console.log(`[wd]   이미 있음 ${have.size}개 · 새로 들어갈 것 ${fresh.length}개`);
       console.log(`[wd]   표본: ${texts.slice(0, 10).join(' · ')}`);
+
+      // 넣기 전에 사람이 전부 훑어볼 수 있어야 한다. 자동 필터는 완전하지 않다.
+      if (DUMP) {
+        writeFileSync(`${DUMP}/${key}-new.txt`, `${fresh.join('\n')}\n`, 'utf8');
+        console.log(`[wd]   새로 들어갈 낱말을 ${DUMP}/${key}-new.txt 에 적었다`);
+      }
       continue;
     }
 
