@@ -19,7 +19,7 @@ CREATE TYPE room_status AS ENUM ('WAITING', 'PLAYING', 'CLOSED');
 -- 판의 종류. 주간 랭킹은 QUICK만 집계한다 —
 -- 친구 방은 둘이 짜고 승수를 무한정 만들 수 있고 외부에서 탐지도 어렵다.
 CREATE TYPE game_mode AS ENUM ('QUICK', 'FRIEND', 'SOLO');
-CREATE TYPE word_source AS ENUM ('STD', 'OPEN_DICT', 'WHITELIST', 'REPORT');
+CREATE TYPE word_source AS ENUM ('STD', 'OPEN_DICT', 'WIKIDATA', 'WHITELIST', 'REPORT');
 CREATE TYPE word_status AS ENUM ('ACTIVE', 'BANNED', 'PENDING');
 CREATE TYPE report_action AS ENUM ('ADD', 'REMOVE');
 CREATE TYPE report_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED');

@@ -18,7 +18,8 @@
     "db:block": "node scripts/apply-blocklist.js",
     "db:import:open": "node scripts/import-opendict.js",
     "words:review": "node scripts/review-words.js",
-    "words:hints": "node scripts/analyze-hints.js"
+    "words:hints": "node scripts/analyze-hints.js",
+    "db:import:wd": "node scripts/import-wikidata.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
