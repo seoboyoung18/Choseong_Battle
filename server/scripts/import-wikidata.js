@@ -54,11 +54,23 @@ const SHAPE = "FILTER(STRLEN(?l) >= 2 && STRLEN(?l) <= 4) FILTER(REGEX(?l,'^[가
  * (도라에몽·짱구·슬램덩크가 전부 Q21198342였다)
  */
 const CATEGORIES = Object.freeze({
-  /** 한국 국적 배우·가수. 성인물 문제가 없고 순증가가 가장 크다 */
+  /** 한국 국적 배우·가수·영화감독. 성인물 문제가 없고 순증가가 가장 크다 */
   person: {
-    label: '배우·가수',
+    label: '배우·가수·감독',
     where: `?x wdt:P27 wd:Q884 ; wdt:P106 ?job ; rdfs:label ?l .
-            VALUES ?job { wd:Q33999 wd:Q177220 }`,
+            VALUES ?job { wd:Q33999 wd:Q177220 wd:Q2526255 }`,
+  },
+
+  /**
+   * 포켓몬.
+   *
+   * 캐릭터 타입으로는 안 잡힌다 — 포켓몬은 `전기 타입 포켓몬`처럼 속성별 클래스에
+   * 달려 있다. 그 클래스들이 전부 `포켓몬스터(Q3966183)`의 하위라 한 단계만
+   * 타고 내려가면 된다. `P279*`로 전개할 필요가 없어 가볍다.
+   */
+  pokemon: {
+    label: '포켓몬',
+    where: `?x wdt:P31 ?t . ?t wdt:P279 wd:Q3966183 . ?x rdfs:label ?l .`,
   },
   film: {
     label: '영화',
