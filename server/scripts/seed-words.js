@@ -1,5 +1,6 @@
 /**
- * 초기 단어를 words 테이블에 넣는다. 여러 번 돌려도 안전하다 (text UNIQUE 기준 upsert).
+ * 초기 단어를 words 테이블에 넣는다. 여러 번 돌려도, 사전을 임포트한 뒤에
+ * 돌려도 안전하다 — 출제 자격은 올리기만 하고 내리지 않는다.
  *
  *   npm run db:seed
  */
@@ -34,9 +35,15 @@ async function main() {
        $5::boolean[], $6::smallint[], $7::word_source[]
      )
      ON CONFLICT (text) DO UPDATE
-       SET is_curated = EXCLUDED.is_curated,
-           cho        = EXCLUDED.cho,
-           jung       = EXCLUDED.jung`,
+       SET cho        = EXCLUDED.cho,
+           jung       = EXCLUDED.jung,
+           -- 올리기만 하고 내리지 않는다. 예전에는 EXCLUDED를 그대로 썼는데,
+           -- 그러면 사전을 임포트한 뒤 시드를 돌릴 때 EXTRA 목록에 있는 낱말의
+           -- 출제 자격이 통째로 벗겨졌다 (가격·가뭄·감정·개발·건물… 65개).
+           -- EXTRA는 "출제 금지"가 아니라 "내가 보증하지는 않는다"는 뜻이고,
+           -- 진짜 금지는 blocklist와 status='BANNED'가 맡는다.
+           -- import-krdict.js의 upsert와 같은 규칙이다.
+           is_curated = words.is_curated OR EXCLUDED.is_curated`,
     [
       rows.map((r) => r.text),
       rows.map((r) => r.length),
