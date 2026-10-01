@@ -71,20 +71,72 @@
 
 .mypage__preview {
   display: flex;
+  align-items: flex-end;
   justify-content: center;
+  gap: 14px;
 }
 
-/* 파츠 종류 탭 — 밑줄형 (목업 기준) */
+.mypage__preview-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mypage__preview-cap {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+/* 무작위·되돌리기 */
+.mypage__tools {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mypage__tool {
+  appearance: none;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.mypage__tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 파츠 종류 탭 — 밑줄형 (목업 기준).
+   칸이 일곱이라 좁은 화면에서는 균등 분할이 안 된다. 줄바꿈 대신 옆으로 밀어
+   본다 — 밑줄 한 줄이 끊기지 않아야 지금 어디를 보는지 읽힌다 */
 .mypage__tabs {
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mypage__tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .mypage__tab {
   appearance: none;
-  flex: 1;
-  padding: 12px 0;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 9px;
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -94,11 +146,19 @@
   border-bottom: 3px solid transparent;
   margin-bottom: -1px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .mypage__tab.is-on {
   color: var(--primary);
   border-bottom-color: var(--primary);
+}
+
+.mypage__tab-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-3);
+  opacity: 0.75;
 }
 
 /* 파츠 목록 — 칸마다 그 파츠를 입은 캐릭터가 그려진다 */

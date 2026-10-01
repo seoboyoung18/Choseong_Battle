@@ -22,52 +22,68 @@ export const UNLOCK = Object.freeze({
 /** 편집기 탭 순서 */
 export const AVATAR_SLOTS = Object.freeze([
   { slot: 'base', label: '동물' },
+  { slot: 'face', label: '표정' },
   { slot: 'hanbok', label: '한복' },
   { slot: 'head', label: '머리' },
-  { slot: 'face', label: '표정' },
+  { slot: 'glasses', label: '안경' },
+  { slot: 'neck', label: '목장식' },
   { slot: 'bg', label: '배경' },
 ]);
 
 /**
  * 파츠 목록.
  *
- * base   ear/mark 는 렌더러가 읽는 모양 코드다 — 색이 아니라 형태를 고른다
- * hanbok jeogori=저고리, goreum=고름. 깃(동정)은 늘 흰색이라 파츠로 두지 않았다
+ * base    ear/mark/nose 는 렌더러가 읽는 모양 코드다 — 색이 아니라 형태를 고른다
+ * hanbok  jeogori=저고리, goreum=고름, pattern=저고리 무늬. 깃(동정)은 늘 흰색이라 파츠로 두지 않았다
+ * glasses 표정 위에 겹쳐 그린다. 부리가 있는 까치도 쓸 수 있다
+ * neck    깃 아래 목선에 얹는다 — 고름과 겹치지 않게 렌더러가 자리를 비켜 준다
  */
 export const AVATAR_PARTS = Object.freeze({
   base: Object.freeze([
-    { id: 'RABBIT', label: '토끼', ear: 'LONG', mark: 'NONE', fur: '#f6ece6', inner: '#eab8bc' },
-    { id: 'BEAR', label: '곰', ear: 'ROUND', mark: 'NONE', fur: '#b08968', inner: '#dcc0a4' },
-    { id: 'CAT', label: '고양이', ear: 'POINT', mark: 'NONE', fur: '#efd9b4', inner: '#e8a9a0' },
-    { id: 'SQUIRREL', label: '다람쥐', ear: 'TUFT', mark: 'NONE', fur: '#c9793f', inner: '#f0d3ae' },
-    { id: 'RACCOON', label: '너구리', ear: 'ROUND', mark: 'MASK', fur: '#a9a29b', inner: '#efe7de' },
+    { id: 'RABBIT', label: '토끼', ear: 'LONG', mark: 'NONE', nose: 'TINY', muzzle: true, fur: '#f6ece6', inner: '#eab8bc' },
+    { id: 'BEAR', label: '곰', ear: 'ROUND', mark: 'NONE', nose: 'ROUND', muzzle: true, fur: '#b08968', inner: '#dcc0a4' },
+    { id: 'CAT', label: '고양이', ear: 'POINT', mark: 'NONE', nose: 'TRI', whisker: true, fur: '#efd9b4', inner: '#e8a9a0' },
+    { id: 'SQUIRREL', label: '다람쥐', ear: 'TUFT', mark: 'NONE', nose: 'TINY', muzzle: true, fur: '#c9793f', inner: '#f0d3ae' },
+    { id: 'RACCOON', label: '너구리', ear: 'ROUND', mark: 'MASK', nose: 'ROUND', muzzle: true, fur: '#a9a29b', inner: '#efe7de' },
     {
-      id: 'FOX', label: '여우', ear: 'POINT', mark: 'NONE', fur: '#d97a41', inner: '#fbeadc',
+      id: 'FOX', label: '여우', ear: 'POINT', mark: 'NONE', nose: 'TRI', muzzle: true, whisker: true,
+      fur: '#d97a41', inner: '#fbeadc',
       unlock: { type: UNLOCK.ROUND_WINS, value: 20 },
     },
     {
-      id: 'TIGER', label: '호랑이', ear: 'ROUND', mark: 'STRIPE', fur: '#e0913f', inner: '#fbe6cd',
+      id: 'TIGER', label: '호랑이', ear: 'ROUND', mark: 'STRIPE', nose: 'TRI', muzzle: true, whisker: true,
+      fur: '#e0913f', inner: '#fbe6cd',
       unlock: { type: UNLOCK.ROUND_WINS, value: 60 },
     },
     {
-      id: 'MAGPIE', label: '까치', ear: 'BIRD', mark: 'BIB', fur: '#3f3d45', inner: '#fffcf7',
+      id: 'MAGPIE', label: '까치', ear: 'BIRD', mark: 'BIB', nose: 'NONE',
+      fur: '#3f3d45', inner: '#fffcf7',
       unlock: { type: UNLOCK.PRACTICE, value: 12 },
     },
   ]),
 
   hanbok: Object.freeze([
-    { id: 'INDIGO', label: '쪽빛', jeogori: '#46648f', goreum: '#c4622d' },
-    { id: 'CRIMSON', label: '다홍', jeogori: '#c2453c', goreum: '#2f4858' },
-    { id: 'IVORY', label: '미색', jeogori: '#f0e2c8', goreum: '#7a9471' },
-    { id: 'SAGE', label: '연둣빛', jeogori: '#7a9471', goreum: '#d9a036' },
-    { id: 'PLUM', label: '자주', jeogori: '#7d4470', goreum: '#f0e2c8' },
-    { id: 'CHARCOAL', label: '먹빛', jeogori: '#4a4442', goreum: '#d9a036' },
+    { id: 'INDIGO', label: '쪽빛', jeogori: '#46648f', goreum: '#c4622d', pattern: 'NONE' },
+    { id: 'CRIMSON', label: '다홍', jeogori: '#c2453c', goreum: '#2f4858', pattern: 'NONE' },
+    { id: 'IVORY', label: '미색', jeogori: '#f0e2c8', goreum: '#7a9471', pattern: 'NONE' },
+    { id: 'SAGE', label: '연둣빛', jeogori: '#7a9471', goreum: '#d9a036', pattern: 'NONE' },
+    { id: 'PLUM', label: '자주', jeogori: '#7d4470', goreum: '#f0e2c8', pattern: 'NONE' },
+    { id: 'CHARCOAL', label: '먹빛', jeogori: '#4a4442', goreum: '#d9a036', pattern: 'NONE' },
+    { id: 'PERSIMMON', label: '감빛', jeogori: '#c4622d', goreum: '#46648f', pattern: 'NONE' },
+    { id: 'JADE', label: '옥색', jeogori: '#6b9e8f', goreum: '#c2453c', pattern: 'NONE' },
+    { id: 'PEONY', label: '분홍', jeogori: '#e08aa0', goreum: '#7d4470', pattern: 'NONE' },
+    { id: 'DOTTED', label: '물방울', jeogori: '#5b7fa6', goreum: '#f0e2c8', pattern: 'DOT' },
+    { id: 'STRIPED', label: '줄무늬', jeogori: '#4f6b5a', goreum: '#d9a036', pattern: 'STRIPE' },
     {
-      id: 'GOLD', label: '금빛', jeogori: '#d9a036', goreum: '#7d4470',
+      id: 'FLORAL', label: '꽃수', jeogori: '#b2543f', goreum: '#f0e2c8', pattern: 'FLOWER',
+      unlock: { type: UNLOCK.GAMES, value: 15 },
+    },
+    {
+      id: 'GOLD', label: '금빛', jeogori: '#d9a036', goreum: '#7d4470', pattern: 'NONE',
       unlock: { type: UNLOCK.GAMES, value: 10 },
     },
     {
-      id: 'SKY', label: '하늘', jeogori: '#6fa3b5', goreum: '#f0e2c8',
+      id: 'SKY', label: '하늘', jeogori: '#6fa3b5', goreum: '#f0e2c8', pattern: 'NONE',
       unlock: { type: UNLOCK.ROUND_WINS, value: 30 },
     },
   ]),
@@ -77,13 +93,48 @@ export const AVATAR_PARTS = Object.freeze({
     { id: 'DAENGGI', label: '댕기', color: '#c2453c' },
     { id: 'FLOWER', label: '꽃', color: '#e08aa0', accent: '#d9a036' },
     { id: 'BEADS', label: '방울', color: '#d9a036', accent: '#c2453c' },
+    { id: 'BINYEO', label: '비녀', color: '#d9a036', accent: '#7d4470' },
+    { id: 'RIBBON', label: '리본', color: '#e08aa0', accent: '#fffcf7' },
+    { id: 'BOKGEON', label: '복건', color: '#3b4a6b', accent: '#d9a036' },
+    { id: 'LEAF', label: '나뭇잎', color: '#7a9471', accent: '#4f6b5a' },
     {
       id: 'JOKDURI', label: '족두리', color: '#7d4470', accent: '#d9a036',
       unlock: { type: UNLOCK.GAMES, value: 5 },
     },
     {
+      id: 'HWAGWAN', label: '화관', color: '#e08aa0', accent: '#d9a036',
+      unlock: { type: UNLOCK.GAMES, value: 25 },
+    },
+    {
       id: 'GAT', label: '갓', color: '#3b3a3f', accent: '#6e5b4c',
       unlock: { type: UNLOCK.ROUND_WINS, value: 40 },
+    },
+  ]),
+
+  glasses: Object.freeze([
+    { id: 'NONE', label: '없음' },
+    { id: 'ROUND', label: '동글', frame: '#6e5b4c' },
+    { id: 'SQUARE', label: '각테', frame: '#3b3a3f' },
+    { id: 'HALF', label: '반달', frame: '#d9a036' },
+    {
+      id: 'SUN', label: '선글', frame: '#3b3a3f', lens: '#2f3d4a',
+      unlock: { type: UNLOCK.ROUND_WINS, value: 15 },
+    },
+    {
+      id: 'GOGGLE', label: '물안경', frame: '#46648f', lens: '#9fd0dd',
+      unlock: { type: UNLOCK.PRACTICE, value: 15 },
+    },
+  ]),
+
+  neck: Object.freeze([
+    { id: 'NONE', label: '없음' },
+    { id: 'SCARF', label: '목도리', color: '#c2453c', accent: '#f0e2c8' },
+    { id: 'NORIGAE', label: '노리개', color: '#7d4470', accent: '#d9a036' },
+    { id: 'BEADS', label: '구슬', color: '#6b9e8f', accent: '#f0e2c8' },
+    { id: 'BELL', label: '방울', color: '#d9a036', accent: '#c2453c' },
+    {
+      id: 'CAPE', label: '배자', color: '#4a4442', accent: '#d9a036',
+      unlock: { type: UNLOCK.GAMES, value: 12 },
     },
   ]),
 
@@ -92,9 +143,14 @@ export const AVATAR_PARTS = Object.freeze({
     { id: 'WINK', label: '윙크' },
     { id: 'PROUD', label: '뿌듯' },
     { id: 'SURPRISE', label: '놀람' },
+    { id: 'SLEEPY', label: '졸음' },
     {
       id: 'COOL', label: '새침',
       unlock: { type: UNLOCK.PRACTICE, value: 8 },
+    },
+    {
+      id: 'HEART', label: '하트눈',
+      unlock: { type: UNLOCK.PRACTICE, value: 20 },
     },
   ]),
 
@@ -104,6 +160,9 @@ export const AVATAR_PARTS = Object.freeze({
     { id: 'PEACH', label: '살구', color: '#f6ded0' },
     { id: 'SKY', label: '하늘', color: '#d6e4ef' },
     { id: 'LILAC', label: '라일락', color: '#e6dcec' },
+    { id: 'MOSS', label: '쑥빛', color: '#dde3cf' },
+    { id: 'SUNSET', label: '노을', color: '#f7d9c4' },
+    { id: 'PAPER', label: '한지', color: '#ece3d2' },
     {
       id: 'NIGHT', label: '밤', color: '#3f3d45',
       unlock: { type: UNLOCK.GAMES, value: 20 },
@@ -116,6 +175,8 @@ export const DEFAULT_APPEARANCE = Object.freeze({
   base: 'RABBIT',
   hanbok: 'INDIGO',
   head: 'NONE',
+  glasses: 'NONE',
+  neck: 'NONE',
   face: 'SMILE',
   bg: 'SAND',
 });

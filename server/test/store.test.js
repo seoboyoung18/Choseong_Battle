@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 
 import { SKIP_REASON } from '../test-helpers/infra.js';
 
-import { DEFAULT_APPEARANCE } from '../../shared/avatar.js';
+import { DEFAULT_APPEARANCE, normalizeAppearance } from '../../shared/avatar.js';
 import { PostgresStore } from '../src/db/store.js';
 import { pool, query } from '../src/db/pool.js';
 
@@ -269,7 +269,8 @@ test('프로필을 바꾸면 이름과 캐릭터가 함께 남는다', async (t)
   if (!available) return t.skip(SKIP_REASON.DB);
 
   const me = await makeUser('바꾸기전');
-  const look = { base: 'CAT', hanbok: 'SAGE', head: 'FLOWER', face: 'WINK', bg: 'MINT' };
+  // 칸이 늘어나도 깨지지 않게 카탈로그를 통과시킨 값으로 비교한다 — 빠진 칸은 기본 파츠로 채워진다
+  const look = normalizeAppearance({ base: 'CAT', hanbok: 'SAGE', head: 'FLOWER', face: 'WINK', bg: 'MINT' });
   const updated = await store.updateProfile({ userId: me.id, nickname: '바꾼뒤', appearance: look });
 
   assert.equal(updated.nickname, '바꾼뒤');
@@ -295,7 +296,7 @@ test('다시 접속해도 저장한 캐릭터가 따라온다', async (t) => {
   const first = await store.upsertUser({ tossUserId: tossId, nickname: '재접속' });
   createdUsers.push(first.id);
 
-  const look = { base: 'BEAR', hanbok: 'PLUM', head: 'BEADS', face: 'PROUD', bg: 'PEACH' };
+  const look = normalizeAppearance({ base: 'BEAR', hanbok: 'PLUM', head: 'BEADS', face: 'PROUD', bg: 'PEACH' });
   await store.updateProfile({ userId: first.id, nickname: '재접속', appearance: look });
 
   const again = await store.upsertUser({ tossUserId: tossId, nickname: '재접속' });

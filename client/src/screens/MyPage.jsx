@@ -84,10 +84,42 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
     return actions.updateProfile({ nickname: name, appearance: draft });
   };
 
+  // 열린 파츠 중에서만 고른다 — 잠긴 걸 뽑아놓으면 저장할 때 서버가 거절한다
+  const randomize = () => {
+    const next = {};
+    for (const { slot: s } of AVATAR_SLOTS) {
+      const open = AVATAR_PARTS[s].filter((part) => isUnlocked(part, progress));
+      next[s] = open[Math.floor(Math.random() * open.length)].id;
+    }
+    setDraft(next);
+  };
+
+  const saved = normalizeAppearance(user.appearance);
+  const touched = !sameLook(draft, saved);
+
   return (
     <div className="mypage__editor">
       <div className="mypage__preview">
         <Avatar appearance={draft} size={132} shape="square" className="mypage__preview-face" />
+        {/* 게임 중에는 동그란 액자로만 보인다 — 고른 옷이 거기서도 보이는지 확인용 */}
+        <div className="mypage__preview-side">
+          <Avatar appearance={draft} size={56} shape="circle" />
+          <span className="mypage__preview-cap">게임 화면</span>
+        </div>
+      </div>
+
+      <div className="mypage__tools">
+        <button type="button" className="mypage__tool" onClick={randomize}>
+          🎲 무작위
+        </button>
+        <button
+          type="button"
+          className="mypage__tool"
+          onClick={() => setDraft(saved)}
+          disabled={!touched}
+        >
+          ↩ 되돌리기
+        </button>
       </div>
 
       <input
@@ -98,17 +130,25 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
         onChange={(e) => setNickname(e.target.value)}
       />
 
+      {/* 칸마다 몇 개가 열렸는지 적어 둔다 — 안 적으면 잠긴 칸을 찾으러 다 눌러봐야 한다 */}
       <div className="mypage__tabs">
-        {AVATAR_SLOTS.map((tab) => (
-          <button
-            key={tab.slot}
-            type="button"
-            className={`mypage__tab ${slot === tab.slot ? 'is-on' : ''}`}
-            onClick={() => setSlot(tab.slot)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {AVATAR_SLOTS.map((tab) => {
+          const list = AVATAR_PARTS[tab.slot];
+          const open = list.filter((part) => isUnlocked(part, progress)).length;
+          return (
+            <button
+              key={tab.slot}
+              type="button"
+              className={`mypage__tab ${slot === tab.slot ? 'is-on' : ''}`}
+              onClick={() => setSlot(tab.slot)}
+            >
+              {tab.label}
+              <span className="mypage__tab-count">
+                {open}/{list.length}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* 파츠마다 그 파츠만 바꾼 캐릭터를 그린다 — 이름만 봐서는 뭐가 바뀌는지 모른다 */}

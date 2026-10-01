@@ -12,6 +12,7 @@
  *   submissions    거절 포함 모든 제출 — 사전 보강·난이도 보정·어뷰징 분석용
  */
 
+import { normalizeAppearance } from '../../../shared/avatar.js';
 import { weekOf } from '../ranking/week.js';
 
 /** 주간 랭킹 집계 규칙 (README 「랭킹」) */
@@ -24,13 +25,24 @@ export const RANKING = Object.freeze({
   TOP_N: 100,
 });
 
+/**
+ * 저장된 캐릭터를 내보낼 모양으로 고친다.
+ *
+ * 파츠 칸이 새로 생기면 그전에 만든 행에는 그 키가 없다 — 컬럼 기본값도 마찬가지로
+ * 과거의 조합을 그대로 들고 있다. 빠진 칸을 기본 파츠로 채워서 내보내야 받는 쪽이
+ * 칸이 다 있다고 믿을 수 있다.
+ */
+function toLook(appearance) {
+  return normalizeAppearance(appearance);
+}
+
 /** 랭킹 행을 클라이언트가 쓰는 모양으로 바꾼다 */
 function toRankRow(row) {
   return {
     rank: row.rank,
     userId: Number(row.user_id),
     nickname: row.nickname,
-    appearance: row.appearance,
+    appearance: toLook(row.appearance),
     roundWins: row.round_wins,
     avgAnswerMs: row.avg_answer_ms,
     gamesCounted: row.games_counted,
@@ -92,7 +104,7 @@ export class PostgresStore {
         [tossUserId, nickname],
       );
       const row = rows[0];
-      return { id: Number(row.id), nickname: row.nickname, appearance: row.appearance };
+      return { id: Number(row.id), nickname: row.nickname, appearance: toLook(row.appearance) };
     });
   }
 
@@ -475,7 +487,7 @@ export class PostgresStore {
         [userId, nickname, JSON.stringify(appearance)],
       );
       if (!rows[0]) return null;
-      return { id: Number(rows[0].id), nickname: rows[0].nickname, appearance: rows[0].appearance };
+      return { id: Number(rows[0].id), nickname: rows[0].nickname, appearance: toLook(rows[0].appearance) };
     });
   }
 
