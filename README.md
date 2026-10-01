@@ -468,6 +468,7 @@ Client                Server              Redis         Dictionary
 |---|---|
 | 사전 데이터 (출처·필터·라이선스) | [server/db/DICTIONARY.md](server/db/DICTIONARY.md) |
 | 배포 준비 (차단 요인 · 플랫폼 요건 · 등급분류) | [docs/deployment.md](docs/deployment.md) |
+| 고유명사 모드 출처 조사 (조사만, 미구현) | [docs/proper-noun-mode.md](docs/proper-noun-mode.md) |
 | 게임 화면 배경 교체 | [client/public/README-bg.md](client/public/README-bg.md) |
 | 우리말샘 원본 받기 | [server/db/opendict/README.md](server/db/opendict/README.md) |
 
