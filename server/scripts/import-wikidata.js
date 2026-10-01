@@ -57,13 +57,18 @@ const CATEGORIES = Object.freeze({
   /**
    * 한국 국적 배우·가수·감독·작가. 성인물 문제가 없고 순증가가 가장 크다.
    *
-   * 국적은 `대한민국(Q884)`만으로 부족하다. 윤동주의 국적은 `한국(Q18097)` —
-   * 대한민국 수립 이전 인물이 통째로 빠진다. 둘 다 본다.
+   * 국적은 `대한민국(Q884)`만으로 부족하다. 시대마다 다른 나라가 붙는다.
+   *
+   *   대한민국 Q884    현대
+   *   한국     Q18097  윤동주. 대한민국 수립 이전
+   *   조선     Q28179  장영실·세종대왕·이순신·정약용
+   *
+   * 하나만 보면 그 시대 사람이 통째로 빠진다. 셋 다 본다.
    */
   person: {
     label: '배우·가수·감독·작가',
     where: `?x wdt:P27 ?nat ; wdt:P106 ?job ; rdfs:label ?l .
-            VALUES ?nat { wd:Q884 wd:Q18097 }
+            VALUES ?nat { wd:Q884 wd:Q18097 wd:Q28179 }
             VALUES ?job { wd:Q33999 wd:Q177220 wd:Q2526255
                           wd:Q36180 wd:Q49757 wd:Q6625963 }`,
   },
@@ -78,7 +83,32 @@ const CATEGORIES = Object.freeze({
   athlete: {
     label: '운동선수',
     where: `?x wdt:P27 ?nat ; wdt:P641 ?sport ; rdfs:label ?l .
-            VALUES ?nat { wd:Q884 wd:Q18097 }`,
+            VALUES ?nat { wd:Q884 wd:Q18097 wd:Q28179 }`,
+  },
+
+  politician: {
+    label: '정치인',
+    where: `?x wdt:P27 ?nat ; wdt:P106 wd:Q82955 ; rdfs:label ?l .
+            VALUES ?nat { wd:Q884 wd:Q18097 wd:Q28179 }`,
+  },
+
+  /**
+   * 과학자 — 분야 코드를 손으로 적는다.
+   *
+   * 운동선수처럼 상위 개념으로 묶으려 했지만 안 됐다. `과학자(Q901)` 아래를
+   * 전개해도(`P279*`) 우장춘(농학자)·황우석(유전학자)이 안 잡힌다 — 분야 직업이
+   * 과학자 하위로 일관되게 달려 있지 않다. 게다가 전개 질의는 45~60초가 걸려
+   * WDQS 제한에 걸릴 위험이 있다.
+   *
+   * 그래서 목록이다. **완전하지 않다** — 빠진 분야는 발견될 때 더한다.
+   */
+  scientist: {
+    label: '과학자',
+    where: `?x wdt:P27 ?nat ; wdt:P106 ?job ; rdfs:label ?l .
+            VALUES ?nat { wd:Q884 wd:Q18097 wd:Q28179 }
+            VALUES ?job { wd:Q901 wd:Q169470 wd:Q593644 wd:Q864503 wd:Q170790
+                          wd:Q11063 wd:Q1781198 wd:Q2374149 wd:Q3126128
+                          wd:Q205375 wd:Q1906857 wd:Q81096 }`,
   },
 
   /**
