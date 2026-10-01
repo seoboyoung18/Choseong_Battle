@@ -8,6 +8,23 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#F3E9DC" />
+    <!-- 서체 — Pretendard(본문) · Jua(타이틀). 둘 다 무료 라이선스다.
+         지금은 CDN에서 받는다. 최초 화면 10초 제한이 있어 preconnect를 먼저 걸고
+         swap으로 글자가 먼저 나오게 한다.
+         출시 전에는 self-host 해야 한다 — 번들을 자체 완결적으로 두는 편이
+         낫고(파비콘도 같은 이유로 인라인이다) 외부 CDN은 런타임 의존이다.
+         docs/deployment.md 참고 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Jua&display=swap"
+    />
     <!-- 인라인 파비콘. 외부 파일을 두지 않아 번들이 자체 완결적이고,
          지정하지 않으면 브라우저가 /favicon.ico를 찾다 404를 남긴다 -->
     <link

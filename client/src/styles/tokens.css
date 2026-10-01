@@ -65,10 +65,12 @@
   /* 3D 입체 버튼의 두께 — 캐주얼 게임 특유의 촉감 */
   --lift: 4px;
 
-  --font-ui: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
-    'Segoe UI', Roboto, system-ui, sans-serif;
-  /* 타이틀 서체(Jua)는 아직 안 붙였다 — 로컬 폰트 없이 UI 서체의 굵은 웨이트로 간다 */
-  --font-title: var(--font-ui);
+  /* 서체는 index.html에서 받는다. 못 받아도 뒤의 시스템 서체로 읽힌다 */
+  --font-ui: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', 'Segoe UI', Roboto, system-ui, sans-serif;
+  /* 타이틀은 Jua — 둥글고 굵어 캐주얼 게임 제목에 맞는다. 본문에는 쓰지 않는다
+     (받침 많은 긴 문장에서 가독성이 떨어진다) */
+  --font-title: 'Jua', var(--font-ui);
 }
 
 * {

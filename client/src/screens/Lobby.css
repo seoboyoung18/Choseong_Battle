@@ -17,8 +17,11 @@
 }
 
 .onboard__title {
+  /* 앱 이름이라 타이틀 서체(Jua)를 쓴다 */
+  font-family: var(--font-title);
   font-size: 44px;
-  font-weight: 900;
+  /* Jua는 한 굵기만 있어 900을 줘도 합성 볼드가 되어 획이 뭉갠다 */
+  font-weight: 400;
   margin: 8px 0 0;
   letter-spacing: -0.03em;
 }
