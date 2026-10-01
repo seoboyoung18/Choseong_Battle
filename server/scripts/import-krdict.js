@@ -212,8 +212,8 @@ async function main() {
   process.stdout.write('\n');
 
   const lowered = await uncurate(derogatory);
-  const { banned, unserved, restored } = await applyBlocklist(pool);
-  console.log(`[import] 출제에서 내림 — 낮춤말 ${lowered}개 · 목록 ${unserved}개`);
+  const { banned, unserved, tooFew, restored } = await applyBlocklist(pool);
+  console.log(`[import] 출제에서 내림 — 낮춤말 ${lowered}개 · 목록 ${unserved}개 · 답 없음 ${tooFew}개`);
   console.log(`[import] 완전 차단 ${banned}개 · 기준에서 빠져 되살림 ${restored}개`);
 
   const { rows: [total] } = await pool.query(

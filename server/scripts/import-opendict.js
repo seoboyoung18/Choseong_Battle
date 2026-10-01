@@ -180,8 +180,8 @@ async function main() {
   process.stdout.write('\n');
 
   // 110만 표제어에는 기초사전에 없던 말이 잔뜩 들어온다. 차단 목록을 다시 돌린다.
-  const { banned, unserved } = await applyBlocklist(pool);
-  console.log(`[open] 완전 차단 ${banned}개 · 출제 금지 ${unserved}개`);
+  const { banned, unserved, tooFew } = await applyBlocklist(pool);
+  console.log(`[open] 완전 차단 ${banned}개 · 출제 금지 ${unserved}개 · 답 없음 ${tooFew}개`);
 
   const { rows: [total] } = await pool.query(
     `SELECT count(*) FILTER (WHERE status = 'ACTIVE') AS judge,

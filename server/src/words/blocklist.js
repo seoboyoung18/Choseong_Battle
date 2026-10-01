@@ -137,6 +137,32 @@ export const NOT_SERVED = Object.freeze([
  * 막지 못한다.
  */
 
+/**
+ * 답이 거의 없어 출제하지 않는 낱말.
+ *
+ * `NOT_SERVED`와 이유가 전혀 다르다. 저쪽은 "화면 한가운데 띄울 자리가 아니다"라는
+ * 내용 판단이고, 여기는 **답이 없다는 계산**이다. 한 칸에 넣으면 나중에 둘 다
+ * 못 읽는다.
+ *
+ * 낱말에는 아무 잘못이 없다 — 전부 멀쩡하고 흔한 말이다. 문제는 그 초성 조합을
+ * 가진 다른 낱말이 한국어에 거의 없다는 것이다. 판정에서는 그대로 인정한다
+ * (`꽃씨`를 쳤는데 "없는 단어"라고 답하면 거짓말이다). 힌트를 만드는 재료로만
+ * 쓰지 않는다.
+ *
+ *   꽃씨   ㄲ ㅆ      사전 전체에서 답이 꽃씨 하나
+ *   큰딸   ㅋ ㄸ      큰딸 하나
+ *   계획표  ㄱ ㅚ ㅛ   계획표 하나 (자음+모음 힌트)
+ *   땅콩   ㄸ ㅋ      땅콩·떠퀴. 떠퀴는 우리말샘에만 있어 아무도 치지 않는다
+ *   한때   ㅎ ㄸ      한때·호떡. 아는 답이 호떡 하나뿐
+ *   팔찌   ㅍ ㅉ      팔짱·팔찌·평찌. 평찌는 우리말샘에만 있다
+ *
+ * 사전이 바뀌면 다시 재야 한다. 우리말샘을 더 넣거나 방언을 인정하면 답이 늘어
+ * 풀려날 수도 있다 — `npm run words:hints`로 확인한다.
+ */
+export const TOO_FEW_ANSWERS = Object.freeze([
+  '꽃씨', '큰딸', '계획표', '땅콩', '한때', '팔찌',
+]);
+
 /** 뜻풀이에 낮춤·비속 표시가 붙었는지 */
 export function isDerogatory(definition) {
   if (!definition) return false;
@@ -184,9 +210,19 @@ export async function applyBlocklist(db) {
     [[...NOT_SERVED]],
   );
 
+  // 4) 답이 없어 출제하지 않는 낱말. 3)과 쿼리는 같지만 이유가 달라 따로 센다 —
+  //    한 숫자로 합치면 "왜 내려갔는지"를 로그에서 읽을 수 없다.
+  const tooFew = await db.query(
+    `UPDATE words SET is_curated = false
+      WHERE text = ANY($1::text[])
+        AND is_curated`,
+    [[...TOO_FEW_ANSWERS]],
+  );
+
   return {
     banned: banned.rowCount,
     unserved: unserved.rowCount,
+    tooFew: tooFew.rowCount,
     restored: restored.rowCount,
   };
 }

@@ -11,6 +11,7 @@ import {
   BLOCKED,
   DEROGATORY_MARKERS,
   NOT_SERVED,
+  TOO_FEW_ANSWERS,
   applyBlocklist,
   isDerogatory,
 } from '../src/words/blocklist.js';
@@ -100,8 +101,8 @@ test('적용은 되살리기 → 차단 → 출제 금지 순서로 돈다', asy
   };
 
   const result = await applyBlocklist(db);
-  assert.deepEqual(result, { restored: 1, banned: 2, unserved: 3 });
-  assert.equal(calls.length, 3);
+  assert.deepEqual(result, { restored: 1, banned: 2, unserved: 3, tooFew: 4 });
+  assert.equal(calls.length, 4);
 
   // 1) 기준에서 빠진 낱말 되살리기 — 신고로 막은 것은 건드리지 않는다
   assert.match(calls[0].sql, /SET status = 'ACTIVE'/);
@@ -116,4 +117,19 @@ test('적용은 되살리기 → 차단 → 출제 금지 순서로 돈다', asy
   assert.match(calls[2].sql, /SET is_curated = false/);
   assert.doesNotMatch(calls[2].sql, /status/, '출제만 막아야 하는데 판정까지 끄고 있다');
   assert.deepEqual(calls[2].params[0], [...NOT_SERVED]);
+
+  // 4) 답이 없어 출제하지 않는 낱말 — 3)과 쿼리는 같지만 목록이 다르다.
+  //    여기서도 판정은 살아 있어야 한다. 꽃씨를 쳤는데 "없는 단어"라고
+  //    답하면 거짓말이다.
+  assert.match(calls[3].sql, /SET is_curated = false/);
+  assert.doesNotMatch(calls[3].sql, /status/, '출제만 막아야 하는데 판정까지 끄고 있다');
+  assert.deepEqual(calls[3].params[0], [...TOO_FEW_ANSWERS]);
+});
+
+test('답 없음 목록과 출제 금지 목록은 겹치지 않는다', () => {
+  // 이유가 다른 두 목록이다 — 겹치면 어느 쪽 근거로 내려갔는지 로그가 거짓이 된다.
+  for (const word of TOO_FEW_ANSWERS) {
+    assert.equal(NOT_SERVED.includes(word), false, `'${word}'가 두 목록에 다 있다`);
+    assert.equal(BLOCKED.includes(word), false, `'${word}'는 판정에서도 인정해야 한다`);
+  }
 });
