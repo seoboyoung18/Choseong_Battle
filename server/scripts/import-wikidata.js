@@ -149,10 +149,19 @@ const CATEGORIES = Object.freeze({
             ?x wdt:P31 wd:Q11424 ; rdfs:label ?l .
             FILTER NOT EXISTS { ?x wdt:P136 wd:Q599558 }`,
   },
+  /**
+   * 캐릭터.
+   *
+   * `일본 만화 등장인물(Q87576284)`·`일본 애니메이션 등장인물(Q80447738)`은
+   * 나중에 찾았다. 케로로가 왜 없는지 보다가 드러났는데, 이 둘만 777개이고
+   * 품질이 좋다 — 정대만·송태섭(슬램덩크), 프랑키·징베(원피스), 프리저(드래곤볼)
+   * 처럼 한국에서 쓰는 이름이 들어 있다.
+   */
   character: {
     label: '캐릭터',
     where: `VALUES ?t { wd:Q95074 wd:Q15632617 wd:Q3658341 wd:Q15773347
-                        wd:Q15773317 wd:Q15711870 wd:Q1114461 wd:Q28020127 }
+                        wd:Q15773317 wd:Q15711870 wd:Q1114461 wd:Q28020127
+                        wd:Q87576284 wd:Q80447738 }
             ?x wdt:P31 ?t ; rdfs:label ?l .`,
   },
   manga: {
