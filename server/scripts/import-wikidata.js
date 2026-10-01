@@ -54,11 +54,31 @@ const SHAPE = "FILTER(STRLEN(?l) >= 2 && STRLEN(?l) <= 4) FILTER(REGEX(?l,'^[가
  * (도라에몽·짱구·슬램덩크가 전부 Q21198342였다)
  */
 const CATEGORIES = Object.freeze({
-  /** 한국 국적 배우·가수·영화감독. 성인물 문제가 없고 순증가가 가장 크다 */
+  /**
+   * 한국 국적 배우·가수·감독·작가. 성인물 문제가 없고 순증가가 가장 크다.
+   *
+   * 국적은 `대한민국(Q884)`만으로 부족하다. 윤동주의 국적은 `한국(Q18097)` —
+   * 대한민국 수립 이전 인물이 통째로 빠진다. 둘 다 본다.
+   */
   person: {
-    label: '배우·가수·감독',
-    where: `?x wdt:P27 wd:Q884 ; wdt:P106 ?job ; rdfs:label ?l .
-            VALUES ?job { wd:Q33999 wd:Q177220 wd:Q2526255 }`,
+    label: '배우·가수·감독·작가',
+    where: `?x wdt:P27 ?nat ; wdt:P106 ?job ; rdfs:label ?l .
+            VALUES ?nat { wd:Q884 wd:Q18097 }
+            VALUES ?job { wd:Q33999 wd:Q177220 wd:Q2526255
+                          wd:Q36180 wd:Q49757 wd:Q6625963 }`,
+  },
+
+  /**
+   * 한국 운동선수.
+   *
+   * 직업 코드로 잡으면 종목마다 달라서(축구 선수 Q937857 · 야구 선수 Q10871364 ·
+   * 피겨 스케이팅 선수 Q13219587 …) 빠뜨리기 쉽다. 대신 **종목 속성(P641)이
+   * 달렸는지**로 본다 — 종목이 있으면 운동선수다. 한 줄로 전 종목을 덮는다.
+   */
+  athlete: {
+    label: '운동선수',
+    where: `?x wdt:P27 ?nat ; wdt:P641 ?sport ; rdfs:label ?l .
+            VALUES ?nat { wd:Q884 wd:Q18097 }`,
   },
 
   /**
