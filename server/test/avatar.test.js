@@ -144,3 +144,60 @@ test('새로 열린 파츠는 어느 칸인지 함께 알려준다', () => {
   assert.equal(part.id, 'FOX');
   assert.equal(part.label, '여우');
 });
+
+/* ── 색 ──────────────────────────────────────────────────────────────────── */
+
+test('색은 해금을 따지지 않는다 — 아무것도 안 한 계정도 고를 수 있다', () => {
+  // 색까지 잠그면 새 계정이 쓸 수 있는 조합이 너무 적어진다
+  const got = validateAppearance({ hanbok: 'INDIGO', tint: { hanbok: 'PLUM' } }, NOTHING);
+  assert.equal(got.ok, true);
+  assert.equal(got.appearance.tint.hanbok, 'PLUM');
+});
+
+test('색을 칠할 수 없는 칸은 거절한다', () => {
+  // 동물과 표정은 색칸이 없다. 조용히 버리면 저장은 됐는데 색이 안 바뀐다
+  for (const slot of ['base', 'face', 'bg']) {
+    const got = validateAppearance({ tint: { [slot]: 'PLUM' } }, EVERYTHING);
+    assert.equal(got.ok, false, `${slot}에 색이 통과했다`);
+    assert.equal(got.slot, slot);
+    assert.equal(got.reason, 'UNKNOWN');
+  }
+});
+
+test('팔레트에 없는 색은 거절한다', () => {
+  const got = validateAppearance({ tint: { hanbok: '#ff00ff' } }, EVERYTHING);
+  assert.equal(got.ok, false);
+  assert.equal(got.reason, 'UNKNOWN');
+});
+
+test("'기본'은 색을 안 고른 것과 같다", () => {
+  const got = validateAppearance({ tint: { hanbok: 'NONE', head: undefined } }, EVERYTHING);
+  assert.equal(got.ok, true);
+  assert.deepEqual(got.appearance.tint, {});
+});
+
+test('색이 객체가 아니면 거절한다', () => {
+  for (const bad of ['PLUM', 3, null, []]) {
+    const got = validateAppearance({ tint: bad }, EVERYTHING);
+    // 배열은 객체라 통과하지만, 칸 이름이 숫자라 그 안에서 걸린다
+    assert.equal(got.ok, Array.isArray(bad) ? true : false, `${JSON.stringify(bad)}가 통과했다`);
+  }
+});
+
+test('남의 캐릭터를 그릴 때 모르는 색은 기본색으로 떨어뜨린다', () => {
+  // 서버가 검사하지만, 더 올라간 클라이언트가 보낸 색이 섞여 올 수 있다
+  const look = normalizeAppearance({ base: 'CAT', tint: { hanbok: '없는색', head: 'GOLD', base: 'PLUM' } });
+  assert.deepEqual(look.tint, { head: 'GOLD' });
+});
+
+test('기본 캐릭터는 색을 하나도 안 고른 상태다', () => {
+  assert.deepEqual(DEFAULT_APPEARANCE.tint, {});
+  assert.deepEqual(normalizeAppearance(null).tint, {});
+});
+
+test('기본 캐릭터의 색칸은 얼려 두되, 받아가는 쪽은 고칠 수 있어야 한다', () => {
+  // {...DEFAULT_APPEARANCE}로 복사하면 얼린 객체가 그대로 따라붙는다
+  const look = normalizeAppearance({ base: 'CAT' });
+  look.tint.hanbok = 'PLUM'; // 얼린 걸 물려받았다면 여기서 조용히 실패한다
+  assert.equal(look.tint.hanbok, 'PLUM');
+});

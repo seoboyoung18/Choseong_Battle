@@ -170,6 +170,54 @@ export const AVATAR_PARTS = Object.freeze({
   ]),
 });
 
+/**
+ * 색을 갈아끼울 수 있는 칸.
+ *
+ * 파츠를 늘리는 것보다 색을 열어주는 쪽이 훨씬 싸다 — 한복 14벌에 색 12가지면
+ * 그림 한 장 더 그리지 않고 168벌이 된다.
+ *
+ * 동물은 뺐다. 털색이 곧 그 동물이라 바꾸면 토끼가 토끼로 안 보인다. 표정도
+ * 뺐다 — 선 하나뿐이라 색을 줘도 달라지는 게 없다. 배경은 파츠 자체가 색이라
+ * 색칸을 또 주면 같은 걸 두 번 고르게 된다.
+ */
+export const TINTABLE_SLOTS = Object.freeze(['hanbok', 'head', 'glasses', 'neck']);
+
+/**
+ * 색 팔레트. 'NONE'은 파츠가 원래 가진 색을 그대로 쓴다는 뜻이다.
+ *
+ * 아무 색이나 고르게 하지 않고 고정 팔레트를 주는 이유: 색상환을 열어주면
+ * 형광색 한복이 나오고, 그 하나가 화면 전체의 톤을 깬다.
+ */
+export const AVATAR_TINTS = Object.freeze([
+  { id: 'NONE', label: '기본' },
+  { id: 'INDIGO', label: '쪽빛', hex: '#46648f' },
+  { id: 'CRIMSON', label: '다홍', hex: '#c2453c' },
+  { id: 'PERSIMMON', label: '감빛', hex: '#c4622d' },
+  { id: 'GOLD', label: '금빛', hex: '#d9a036' },
+  { id: 'SAGE', label: '연둣빛', hex: '#7a9471' },
+  { id: 'JADE', label: '옥색', hex: '#6b9e8f' },
+  { id: 'SKY', label: '하늘', hex: '#6fa3b5' },
+  { id: 'PLUM', label: '자주', hex: '#7d4470' },
+  { id: 'PEONY', label: '분홍', hex: '#e08aa0' },
+  { id: 'IVORY', label: '미색', hex: '#f0e2c8' },
+  { id: 'CHARCOAL', label: '먹빛', hex: '#4a4442' },
+  { id: 'SNOW', label: '흰빛', hex: '#fffcf7' },
+]);
+
+/** 슬롯마다 색이 덮어쓰는 칸 — 나머지 색(고름·장식)은 파츠가 정한 대로 둔다 */
+export const TINT_TARGET = Object.freeze({
+  hanbok: 'jeogori',
+  head: 'color',
+  glasses: 'frame',
+  neck: 'color',
+});
+
+/** 고른 색의 hex. 'NONE'이거나 모르는 id면 null — 파츠 기본색을 쓰라는 뜻 */
+export function tintHex(id) {
+  if (!id || id === 'NONE') return null;
+  return AVATAR_TINTS.find((t) => t.id === id)?.hex ?? null;
+}
+
 /** 처음 만든 계정이 입고 나오는 조합 — 전부 해금 조건이 없는 파츠여야 한다 */
 export const DEFAULT_APPEARANCE = Object.freeze({
   base: 'RABBIT',
@@ -179,6 +227,9 @@ export const DEFAULT_APPEARANCE = Object.freeze({
   neck: 'NONE',
   face: 'SMILE',
   bg: 'SAND',
+  // 색을 하나도 안 고른 상태. 퍼뜨릴 때 이 얼린 객체를 그대로 물려주면 나중에
+  // 누가 손대려다 조용히 실패하므로, normalize·validate는 늘 새 객체를 만든다
+  tint: Object.freeze({}),
 });
 
 const SLOT_NAMES = AVATAR_SLOTS.map((s) => s.slot);
@@ -252,10 +303,22 @@ export function newlyUnlocked(before, after) {
  * @param {object | null | undefined} input
  */
 export function normalizeAppearance(input) {
-  const out = { ...DEFAULT_APPEARANCE };
+  const out = { ...DEFAULT_APPEARANCE, tint: {} };
   if (!input || typeof input !== 'object') return out;
   for (const slot of SLOT_NAMES) {
     if (findPart(slot, input[slot])) out[slot] = input[slot];
+  }
+  out.tint = normalizeTint(input.tint);
+  return out;
+}
+
+/** 색만 추려낸다. 모르는 칸·모르는 색은 버린다 — 그 칸은 파츠 기본색으로 나온다 */
+function normalizeTint(input) {
+  const out = {};
+  if (!input || typeof input !== 'object') return out;
+  for (const slot of TINTABLE_SLOTS) {
+    const id = input[slot];
+    if (id && id !== 'NONE' && tintHex(id)) out[slot] = id;
   }
   return out;
 }
@@ -269,7 +332,7 @@ export function normalizeAppearance(input) {
  * @returns {{ ok: true, appearance: object } | { ok: false, slot: string, reason: 'UNKNOWN' | 'LOCKED' }}
  */
 export function validateAppearance(input, progress = {}) {
-  const appearance = { ...DEFAULT_APPEARANCE };
+  const appearance = { ...DEFAULT_APPEARANCE, tint: {} };
   if (!input || typeof input !== 'object') return { ok: false, slot: 'base', reason: 'UNKNOWN' };
 
   for (const slot of SLOT_NAMES) {
@@ -279,6 +342,19 @@ export function validateAppearance(input, progress = {}) {
     if (!part) return { ok: false, slot, reason: 'UNKNOWN' };
     if (!isUnlocked(part, progress)) return { ok: false, slot, reason: 'LOCKED' };
     appearance[slot] = id;
+  }
+
+  // 색은 해금을 따지지 않는다. 다만 모르는 색은 거절한다 — 조용히 버리면
+  // 저장은 됐는데 색이 안 바뀌는 상태가 되어 어디가 틀렸는지 알 수 없다
+  const tint = input.tint;
+  if (tint !== undefined) {
+    if (tint === null || typeof tint !== 'object') return { ok: false, slot: 'tint', reason: 'UNKNOWN' };
+    for (const [slot, id] of Object.entries(tint)) {
+      if (id === undefined || id === null || id === 'NONE') continue;
+      if (!TINTABLE_SLOTS.includes(slot)) return { ok: false, slot, reason: 'UNKNOWN' };
+      if (!tintHex(id)) return { ok: false, slot, reason: 'UNKNOWN' };
+      appearance.tint[slot] = id;
+    }
   }
   return { ok: true, appearance };
 }

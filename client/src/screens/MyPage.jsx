@@ -11,6 +11,8 @@ import { useEffect, useState } from 'react';
 import {
   AVATAR_PARTS,
   AVATAR_SLOTS,
+  AVATAR_TINTS,
+  TINTABLE_SLOTS,
   isUnlocked,
   normalizeAppearance,
   unlockLabel,
@@ -36,7 +38,9 @@ function shortDate(iso) {
 }
 
 function sameLook(a, b) {
-  return AVATAR_SLOTS.every(({ slot }) => a[slot] === b[slot]);
+  if (!AVATAR_SLOTS.every(({ slot }) => a[slot] === b[slot])) return false;
+  // 색은 "안 고름"이 키 없음으로 들어와서 키 개수로는 비교가 안 된다 — 칸마다 맞춰 본다
+  return TINTABLE_SLOTS.every((slot) => (a.tint?.[slot] ?? null) === (b.tint?.[slot] ?? null));
 }
 
 function countUnlocked(progress) {
@@ -86,16 +90,34 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
 
   // 열린 파츠 중에서만 고른다 — 잠긴 걸 뽑아놓으면 저장할 때 서버가 거절한다
   const randomize = () => {
-    const next = {};
+    const pick = (list) => list[Math.floor(Math.random() * list.length)];
+    const next = { tint: {} };
     for (const { slot: s } of AVATAR_SLOTS) {
-      const open = AVATAR_PARTS[s].filter((part) => isUnlocked(part, progress));
-      next[s] = open[Math.floor(Math.random() * open.length)].id;
+      next[s] = pick(AVATAR_PARTS[s].filter((part) => isUnlocked(part, progress))).id;
+    }
+    // 색은 절반만 건드린다. 네 칸을 매번 다 물들이면 파츠 기본 배색이 한 번도
+    // 안 나와서, 무작위를 눌러도 늘 비슷하게 알록달록한 결과만 본다
+    for (const s of TINTABLE_SLOTS) {
+      const t = pick(AVATAR_TINTS);
+      if (t.hex && Math.random() < 0.5) next.tint[s] = t.id;
     }
     setDraft(next);
   };
 
+  const setTint = (id) =>
+    setDraft((prev) => {
+      const tint = { ...prev.tint };
+      if (id === 'NONE') delete tint[slot];
+      else tint[slot] = id;
+      return { ...prev, tint };
+    });
+
   const saved = normalizeAppearance(user.appearance);
   const touched = !sameLook(draft, saved);
+
+  /** 파츠 목록용 색 — 지금 고르는 칸만 비우고 나머지는 내 색 그대로 둔다 */
+  const gridTint = { ...draft.tint };
+  delete gridTint[slot];
 
   return (
     <div className="mypage__editor">
@@ -151,7 +173,29 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
         })}
       </div>
 
-      {/* 파츠마다 그 파츠만 바꾼 캐릭터를 그린다 — 이름만 봐서는 뭐가 바뀌는지 모른다 */}
+      {/* 색을 파츠보다 위에 둔다 — 아래 칸들이 고른 색으로 그려져서 바로 비교된다 */}
+      {TINTABLE_SLOTS.includes(slot) && (
+        <div className="mypage__tints">
+          {AVATAR_TINTS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              aria-label={t.label}
+              title={t.label}
+              className={`mypage__swatch ${(draft.tint?.[slot] ?? 'NONE') === t.id ? 'is-on' : ''}`}
+              style={t.hex ? { background: t.hex } : undefined}
+              onClick={() => setTint(t.id)}
+            >
+              {/* 기본 칸은 칠할 색이 없으니 글자로 적는다 */}
+              {t.hex ? '' : '기본'}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 파츠마다 그 파츠만 바꾼 캐릭터를 그린다 — 이름만 봐서는 뭐가 바뀌는지 모른다.
+          단 지금 고르는 칸의 색은 빼고 그린다. 한복에 자주색을 입힌 채로 목록을
+          그리면 열네 벌이 전부 자주색이 되어 어느 게 어느 벌인지 알 수 없다 */}
       <div className="mypage__parts">
         {AVATAR_PARTS[slot].map((part) => {
           const open = isUnlocked(part, progress);
@@ -163,7 +207,11 @@ function CharacterEditor({ user, progress, notice, actions, onDone }) {
               disabled={!open}
               onClick={() => setDraft((prev) => ({ ...prev, [slot]: part.id }))}
             >
-              <Avatar appearance={{ ...draft, [slot]: part.id }} size={54} shape="square" />
+              <Avatar
+                appearance={{ ...draft, [slot]: part.id, tint: gridTint }}
+                size={54}
+                shape="square"
+              />
               <span className="mypage__part-name">{part.label}</span>
               {!open && (
                 <>

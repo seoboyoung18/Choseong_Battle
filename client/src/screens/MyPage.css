@@ -161,6 +161,35 @@
   opacity: 0.75;
 }
 
+/* 색 고르기 — 파츠 목록 바로 위에 한 줄로 깔린다 */
+.mypage__tints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.mypage__swatch {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+/* 고른 색은 테두리를 띄워 표시한다 — 체크 표시를 얹으면 밝은 색에서 안 보인다 */
+.mypage__swatch.is-on {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+
 /* 파츠 목록 — 칸마다 그 파츠를 입은 캐릭터가 그려진다 */
 .mypage__parts {
   display: grid;

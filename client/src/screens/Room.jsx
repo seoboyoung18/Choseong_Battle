@@ -51,7 +51,9 @@ export function Room({ room, user, actions }) {
       <div className="room__grid">
         {room.players.map((p) => (
           <div key={p.userId} className={`room__player ${p.connected ? '' : 'is-out'}`}>
-            <Avatar appearance={p.appearance} size={56} />
+            {/* 대기방은 서로를 구경하는 유일한 화면이다 — 동그란 액자로 얼굴만
+                자르면 한복도 목장식도 보이지 않아 꾸밀 이유가 없어진다 */}
+            <Avatar appearance={p.appearance} size={88} shape="square" />
             <span className="room__nn">
               {p.nickname}
               {p.isHost && <span className="badge" style={{ marginLeft: 4 }}>방장</span>}

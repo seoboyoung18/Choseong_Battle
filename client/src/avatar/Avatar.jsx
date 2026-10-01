@@ -1,7 +1,7 @@
 /**
  * 캐릭터 렌더러 — 파츠 id 조합을 SVG로 그린다.
  *
- * 그림 파일을 쓰지 않는 이유: 아직 일러스트가 없고, 조합이 279만 가지라 미리
+ * 그림 파일을 쓰지 않는 이유: 아직 일러스트가 없고, 조합이 798억 가지라 미리
  * 그려둘 수도 없다. 색은 카탈로그(shared/avatar.js)가 들고 있고 여기는 형태만
  * 안다. 나중에 진짜 일러스트가 나오면 이 파일만 갈아끼우면 되고, 저장된 조합은
  * 그대로 산다.
@@ -15,7 +15,7 @@
 
 import { useId } from 'react';
 
-import { findPart, normalizeAppearance } from '../../../shared/avatar.js';
+import { TINT_TARGET, findPart, normalizeAppearance, tintHex } from '../../../shared/avatar.js';
 import './Avatar.css';
 
 const INK = '#3b2f27';
@@ -68,6 +68,19 @@ function tint(hex, amount = 0.3) {
 /** 천 위에 얹을 무늬 색 — 밝은 천이면 어둡게, 어두운 천이면 밝게 */
 function contrastOn(hex) {
   return luma(hex) > 150 ? shade(hex, 0.3) : tint(hex, 0.52);
+}
+
+/**
+ * 고른 색을 파츠에 입힌다.
+ *
+ * 한 칸(저고리·장식 본체·안경테)만 갈아끼우고 나머지 색은 파츠가 정한 대로 둔다.
+ * 고름과 장식 포인트까지 같이 물들이면 열네 벌이 전부 한 덩어리 색이 되어,
+ * 색을 열어준 보람이 사라진다.
+ */
+function recolor(slot, part, tint) {
+  const hex = tintHex(tint?.[slot]);
+  if (!hex) return part;
+  return { ...part, [TINT_TARGET[slot]]: hex };
 }
 
 /* ── 저고리 무늬 ─────────────────────────────────────────────────────────── */
@@ -581,10 +594,10 @@ export function Avatar({ appearance, size = 40, shape = 'circle', className = ''
 
   const look = normalizeAppearance(appearance);
   const base = findPart('base', look.base);
-  const hanbok = findPart('hanbok', look.hanbok);
-  const head = findPart('head', look.head);
-  const glasses = findPart('glasses', look.glasses);
-  const neck = findPart('neck', look.neck);
+  const hanbok = recolor('hanbok', findPart('hanbok', look.hanbok), look.tint);
+  const head = recolor('head', findPart('head', look.head), look.tint);
+  const glasses = recolor('glasses', findPart('glasses', look.glasses), look.tint);
+  const neck = recolor('neck', findPart('neck', look.neck), look.tint);
   const bg = findPart('bg', look.bg);
 
   // 동그란 액자는 목장식이 들어오는 y≈84까지 담는다. 얼굴만 자르면 한복도

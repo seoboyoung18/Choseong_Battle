@@ -43,7 +43,7 @@
   align-items: center;
   gap: 6px;
   border: 1px solid var(--border);
-  min-height: 140px;
+  min-height: 184px;
   justify-content: center;
 }
 
